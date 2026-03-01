@@ -16,7 +16,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { authAPI, tripsAPI, eventsAPI, friendsAPI, analyticsAPI } from '../services/api';
 import { getCurrentLocation, requestLocationPermission, LocationData } from '../services/location';
 import type { LocationSubscription } from 'expo-location';
-import AIChatModal from '../components/AIChatModal';
 import { moderateScale, isSmallScreen } from '../utils/responsive';
 
 export default function HomeScreen() {
@@ -31,8 +30,6 @@ export default function HomeScreen() {
   const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
   const [nearbyEvents, setNearbyEvents] = useState<any[]>([]);
   const locationFetchedRef = useRef(false);
-  const [showAIChat, setShowAIChat] = useState(false);
-  const [selectedTripForAI, setSelectedTripForAI] = useState<any>(null);
   const { width } = useWindowDimensions();
 
   const sessionIdRef = useRef<number | null>(null);
@@ -352,39 +349,6 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Floating AI Assistant Button */}
-      <TouchableOpacity
-        style={styles.floatingAIButton}
-        onPress={() => {
-          setSelectedTripForAI(null);
-          setShowAIChat(true);
-        }}
-        activeOpacity={0.8}
-      >
-        <LinearGradient
-          colors={['#8B5CF6', '#3B82F6']}
-          style={styles.floatingAIButtonGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <Ionicons name="sparkles" size={24} color="#FFFFFF" />
-        </LinearGradient>
-        <View style={styles.aiButtonIndicator} />
-      </TouchableOpacity>
-
-      {/* AI Chat Modal */}
-      <AIChatModal
-        visible={showAIChat}
-        onClose={() => {
-          setShowAIChat(false);
-          setSelectedTripForAI(null);
-        }}
-        tripContext={selectedTripForAI}
-        onGenerateItinerary={(itinerary) => {
-          console.log('Generated itinerary:', itinerary);
-          Alert.alert('Success', 'Itinerary generated!');
-        }}
-      />
     </ScrollView>
   );
 }
@@ -616,34 +580,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9CA3AF',
     marginLeft: 28,
-  },
-  floatingAIButton: {
-    position: 'absolute',
-    bottom: 24,
-    right: 16,
-    zIndex: 100,
-  },
-  floatingAIButtonGradient: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  aiButtonIndicator: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#10B981',
-    borderWidth: 2,
-    borderColor: '#111827',
   },
 });

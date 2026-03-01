@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { tripsAPI, aiAPI } from '../services/api';
+import { tripsAPI } from '../services/api';
 
 interface CreateTripModalProps {
   visible: boolean;
@@ -27,32 +27,6 @@ export default function CreateTripModal({ visible, onClose, onTripCreated }: Cre
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(false);
-  const [generatingAI, setGeneratingAI] = useState(false);
-
-  const handleGenerateItinerary = async () => {
-    if (!destination || !startDate || !endDate) {
-      Alert.alert('Missing Info', 'Please fill in destination and dates to generate itinerary');
-      return;
-    }
-
-    try {
-      setGeneratingAI(true);
-      const result = await aiAPI.generate('itinerary', {
-        destination,
-        startDate,
-        endDate,
-        interests: [],
-        participants: 1,
-      });
-      setDescription(result.generatedText || 'Generated itinerary');
-      Alert.alert('Success', 'AI itinerary generated!');
-    } catch (error: any) {
-      Alert.alert('Info', 'AI generation unavailable. Using template.');
-      setDescription(`Trip to ${destination} from ${startDate} to ${endDate}`);
-    } finally {
-      setGeneratingAI(false);
-    }
-  };
 
   const handleCreate = async () => {
     if (!title || !destination || !startDate || !endDate) {
@@ -161,26 +135,10 @@ export default function CreateTripModal({ visible, onClose, onTripCreated }: Cre
 
             {/* Description / Itinerary */}
             <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <Text style={styles.label}>Description / Itinerary</Text>
-                <TouchableOpacity
-                  style={styles.aiButton}
-                  onPress={handleGenerateItinerary}
-                  disabled={generatingAI}
-                >
-                  {generatingAI ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <>
-                      <Ionicons name="sparkles" size={16} color="#FFFFFF" />
-                      <Text style={styles.aiButtonText}>Generate with AI</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
+              <Text style={styles.label}>Description / Itinerary</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
-                placeholder="Add trip details or generate with AI..."
+                placeholder="Add trip details, plans, or notes..."
                 placeholderTextColor="#6B7280"
                 value={description}
                 onChangeText={setDescription}
@@ -289,26 +247,6 @@ const styles = StyleSheet.create({
   },
   dateInput: {
     flex: 1,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  aiButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#8B5CF6',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 4,
-  },
-  aiButtonText: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    fontWeight: '600',
   },
   footer: {
     flexDirection: 'row',

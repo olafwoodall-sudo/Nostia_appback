@@ -50,13 +50,24 @@ export default function VaultScreen({ route }: any) {
   };
 
   const handleMarkPaid = async (splitId: number) => {
-    try {
-      await vaultAPI.markSplitPaid(splitId);
-      Alert.alert('Success', 'Marked as paid!');
-      loadVaultData();
-    } catch (error: any) {
-      Alert.alert('Error', 'Failed to mark as paid');
-    }
+    Alert.alert(
+      'Confirm Payment',
+      'Confirm that this has been settled outside the app (cash, bank transfer, etc.)?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Yes, Settled',
+          onPress: async () => {
+            try {
+              await vaultAPI.markSplitPaid(splitId);
+              loadVaultData();
+            } catch (error: any) {
+              Alert.alert('Error', 'Failed to mark as paid');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const renderBalanceCard = ({ item }: { item: any }) => (
@@ -134,7 +145,7 @@ export default function VaultScreen({ route }: any) {
                   style={styles.markPaidButton}
                   onPress={() => handleMarkPaid(split.id)}
                 >
-                  <Text style={styles.markPaidText}>Mark Paid</Text>
+                  <Text style={styles.markPaidText}>Confirm Settled</Text>
                 </TouchableOpacity>
               ) : (
                 <View style={styles.paidBadge}>

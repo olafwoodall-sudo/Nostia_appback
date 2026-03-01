@@ -274,29 +274,6 @@ export const feedAPI = {
   },
 };
 
-// Payments API (Stripe)
-export const paymentsAPI = {
-  createIntent: async (vaultSplitId: number) => {
-    const response = await api.post('/payments/create-intent', { vaultSplitId });
-    return response.data;
-  },
-
-  confirmPayment: async (paymentIntentId: string) => {
-    const response = await api.post('/payments/confirm', { paymentIntentId });
-    return response.data;
-  },
-
-  getTransactionHistory: async (tripId: number) => {
-    const response = await api.get(`/payments/trip/${tripId}/history`);
-    return response.data;
-  },
-
-  getUnpaidSplits: async () => {
-    const response = await api.get('/payments/unpaid-splits');
-    return response.data;
-  },
-};
-
 // ===== Events API =====
 export const eventsAPI = {
   getAll: async () => {
@@ -331,19 +308,6 @@ export const eventsAPI = {
 
   delete: async (id: number) => {
     const response = await api.delete(`/events/${id}`);
-    return response.data;
-  },
-};
-
-// ===== AI API =====
-export const aiAPI = {
-  generate: async (task: string, input: any) => {
-    const response = await api.post('/ai/generate', { task, input });
-    return response.data;
-  },
-
-  chat: async (message: string, context: any = {}) => {
-    const response = await api.post('/ai/chat', { message, context });
     return response.data;
   },
 };
