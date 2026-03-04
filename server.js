@@ -1735,6 +1735,73 @@ app.post('/api/vault/pay', authenticateToken, [
   }
 });
 
+// Create PaymentIntent for a trip expense split (card payment)
+// POST /api/vault/splits/:splitId/payment-intent
+app.post('/api/vault/splits/:splitId/payment-intent', authenticateToken, async (req, res) => {
+  try {
+    const splitId = parseInt(req.params.splitId);
+
+    const split = db.prepare(`
+      SELECT vs.*, ve.paidBy, ve.tripId, ve.description
+      FROM vault_splits vs
+      INNER JOIN vault_entries ve ON vs.vaultEntryId = ve.id
+      WHERE vs.id = ?
+    `).get(splitId);
+
+    if (!split) return res.status(404).json({ error: 'Split not found' });
+    if (split.userId !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+    if (split.paid) return res.status(400).json({ error: 'Split already paid' });
+
+    // Reuse existing pending PaymentIntent if one exists
+    const existing = db.prepare(
+      'SELECT stripePaymentIntentId FROM vault_transactions WHERE vaultSplitId = ? AND status = ?'
+    ).get(splitId, 'pending');
+    if (existing) {
+      const Stripe = require('stripe');
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+      const pi = await stripe.paymentIntents.retrieve(existing.stripePaymentIntentId);
+      return res.json({ clientSecret: pi.client_secret, chargedAmount: pi.amount / 100 });
+    }
+
+    // Verify the expense payer has completed Stripe onboarding
+    const payer = db.prepare(
+      'SELECT id, stripe_account_id, onboarding_complete FROM users WHERE id = ?'
+    ).get(split.paidBy);
+    if (!payer?.stripe_account_id || !payer.onboarding_complete) {
+      return res.status(400).json({ error: 'The person who paid this expense has not set up Stripe payments yet' });
+    }
+
+    const chargedAmount = calculateChargedAmount(split.amount);
+    const Stripe = require('stripe');
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+    const intent = await stripe.paymentIntents.create({
+      amount: Math.round(chargedAmount * 100),
+      currency: 'usd',
+      automatic_payment_methods: { enabled: true },
+      transfer_data: {
+        destination: payer.stripe_account_id,
+        amount: Math.round(split.amount * 100)
+      },
+      metadata: {
+        splitId: splitId.toString(),
+        type: 'vault_split'
+      }
+    });
+
+    db.prepare(`
+      INSERT INTO vault_transactions
+        (vaultSplitId, stripePaymentIntentId, amount, currency, status, payerUserId, recipientUserId, tripId)
+      VALUES (?, ?, ?, 'usd', 'pending', ?, ?, ?)
+    `).run(splitId, intent.id, chargedAmount, req.user.id, split.paidBy, split.tripId);
+
+    res.json({ clientSecret: intent.client_secret, chargedAmount });
+  } catch (error) {
+    console.error('Split payment intent error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ==================== PAYMENT METHODS ROUTES ====================
 
 // Get user's saved payment methods

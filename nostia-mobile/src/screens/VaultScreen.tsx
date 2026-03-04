@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useStripe } from '@stripe/stripe-react-native';
 import { vaultAPI } from '../services/api';
 import CreateExpenseModal from '../components/CreateExpenseModal';
 
@@ -21,6 +22,8 @@ export default function VaultScreen({ route }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [payingId, setPayingId] = useState<number | null>(null);
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
   useEffect(() => {
     loadVaultData();
@@ -68,6 +71,41 @@ export default function VaultScreen({ route }: any) {
         },
       ]
     );
+  };
+
+  const handlePayWithCard = async (split: any) => {
+    setPayingId(split.id);
+    try {
+      const { clientSecret, chargedAmount } = await vaultAPI.createSplitPaymentIntent(split.id);
+
+      const { error: initError } = await initPaymentSheet({
+        paymentIntentClientSecret: clientSecret,
+        merchantDisplayName: 'Nostia',
+        style: 'alwaysDark',
+      });
+      if (initError) {
+        Alert.alert('Error', initError.message);
+        return;
+      }
+
+      const { error: presentError } = await presentPaymentSheet();
+      if (presentError) {
+        if (presentError.code !== 'Canceled') {
+          Alert.alert('Payment Failed', presentError.message);
+        }
+        return;
+      }
+
+      Alert.alert(
+        'Payment Submitted',
+        `$${chargedAmount.toFixed(2)} paid (includes Stripe processing fee). Your split will be marked as paid shortly.`
+      );
+      loadVaultData();
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.error || 'Failed to process payment');
+    } finally {
+      setPayingId(null);
+    }
   };
 
   const renderBalanceCard = ({ item }: { item: any }) => (
@@ -195,6 +233,38 @@ export default function VaultScreen({ route }: any) {
             {vaultData?.entryCount || 0} {vaultData?.entryCount === 1 ? 'entry' : 'entries'}
           </Text>
         </LinearGradient>
+
+        {/* My Dues Section */}
+        {vaultData?.unpaidSplits && vaultData.unpaidSplits.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>My Dues</Text>
+            {vaultData.unpaidSplits.map((split: any) => (
+              <View key={split.id} style={styles.dueCard}>
+                <View style={styles.dueInfo}>
+                  <Text style={styles.dueDescription}>{split.description}</Text>
+                  <Text style={styles.duePaidBy}>Owed to {split.paidByName}</Text>
+                </View>
+                <View style={styles.dueRight}>
+                  <Text style={styles.dueAmount}>${split.amount?.toFixed(2)}</Text>
+                  <TouchableOpacity
+                    style={[styles.payCardButton, payingId === split.id && styles.payCardButtonDisabled]}
+                    onPress={() => handlePayWithCard(split)}
+                    disabled={payingId !== null}
+                  >
+                    {payingId === split.id ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <Ionicons name="card-outline" size={14} color="#FFFFFF" style={{ marginRight: 4 }} />
+                        <Text style={styles.payCardText}>Pay with Card</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Balances Section */}
         {vaultData?.balances && vaultData.balances.length > 0 && (
@@ -504,6 +574,58 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#9CA3AF',
     marginTop: 8,
+  },
+  dueCard: {
+    backgroundColor: '#1F2937',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  dueInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  dueDescription: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  duePaidBy: {
+    fontSize: 13,
+    color: '#9CA3AF',
+  },
+  dueRight: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  dueAmount: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#F59E0B',
+  },
+  payCardButton: {
+    backgroundColor: '#6366F1',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    minWidth: 110,
+    justifyContent: 'center',
+  },
+  payCardButtonDisabled: {
+    opacity: 0.6,
+  },
+  payCardText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   fab: {
     position: 'absolute',

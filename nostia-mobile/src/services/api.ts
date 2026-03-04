@@ -192,6 +192,11 @@ export const vaultAPI = {
     return response.data;
   },
 
+  createSplitPaymentIntent: async (splitId: number) => {
+    const response = await api.post(`/vault/splits/${splitId}/payment-intent`);
+    return response.data;
+  },
+
   deleteEntry: async (id: number) => {
     const response = await api.delete(`/vault/${id}`);
     return response.data;

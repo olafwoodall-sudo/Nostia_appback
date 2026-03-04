@@ -95,8 +95,14 @@ class StripeService {
     switch (event.type) {
       case 'payment_intent.succeeded': {
         const pi = event.data.object;
-        const { vaultId, memberId } = pi.metadata || {};
-        if (vaultId && memberId) {
+        const { vaultId, memberId, splitId, type } = pi.metadata || {};
+        if (type === 'vault_split' && splitId) {
+          db.prepare(`UPDATE vault_splits SET paid = 1, paidViaStripe = 1, paidAt = CURRENT_TIMESTAMP WHERE id = ?`)
+            .run(parseInt(splitId));
+          db.prepare(`UPDATE vault_transactions SET status = 'completed', completedAt = CURRENT_TIMESTAMP WHERE stripePaymentIntentId = ?`)
+            .run(pi.id);
+          console.log(`✅ Vault split ${splitId} marked as paid via Stripe`);
+        } else if (vaultId && memberId) {
           db.prepare(`UPDATE vault_members SET status = 'paid' WHERE id = ? AND vault_id = ?`)
             .run(parseInt(memberId), parseInt(vaultId));
           console.log(`✅ Vault member ${memberId} marked as paid`);

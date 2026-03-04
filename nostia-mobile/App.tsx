@@ -5,7 +5,10 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import { StripeProvider } from '@stripe/stripe-react-native';
 import Toast, { toastConfig } from './src/components/Toast';
+
+const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || '';
 
 // Import screens
 import LoginScreen from './src/screens/LoginScreen';
@@ -45,6 +48,7 @@ export default function App() {
   }
 
   return (
+    <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY} merchantIdentifier="merchant.com.nostia">
     <SafeAreaProvider>
       <NavigationContainer>
         <StatusBar style="light" />
@@ -100,6 +104,7 @@ export default function App() {
         <Toast config={toastConfig} />
       </NavigationContainer>
     </SafeAreaProvider>
+    </StripeProvider>
   );
 }
 
