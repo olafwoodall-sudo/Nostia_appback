@@ -1,28 +1,30 @@
-# NOSTIA MVP - Social Adventure Platform
+# NOSTIA — Social Adventure Platform
 
 A full-stack social adventure platform with friend management, trip planning, expense tracking (Vault), adventure discovery, real-time notifications, direct messaging, and AI-powered trip planning.
 
 ## Features
 
-- **Authentication** - Secure login/register with JWT tokens
-- **Friend Management** - Add friends, manage requests, view friend status
-- **Trip Planning** - Create trips, invite participants, track expenses
-- **Vault (Expense Tracking)** - Split expenses, track balances, Stripe payments
-- **Adventure Discovery** - Browse and discover adventures by category
-- **Social Feed** - Photo feed with likes, comments, and image uploads
-- **Notifications** - Real-time notifications for friend requests, trip invitations, and more
-- **Direct Messaging** - Chat with friends
-- **Nearby Events** - Location-based event discovery using GPS
-- **Friend House Status** - See if friends' homes are open/closed for visits
-- **AI Trip Assistant** - AI-powered travel planning with itinerary generation
+- **Authentication** — Secure login/register with JWT tokens
+- **Friend Management** — Add friends, manage requests, view friend status
+- **Trip Planning** — Create trips, invite participants, track expenses
+- **Vault (Expense Tracking)** — Split expenses, track balances, Stripe card payments
+- **Adventure Discovery** — Browse and discover adventures by category
+- **Social Feed** — Photo feed with likes, comments, and image uploads
+- **Notifications** — Push notifications for friend requests, trip invitations, and more
+- **Direct Messaging** — Chat with friends
+- **Nearby Events** — Location-based event discovery using GPS
+- **Friend House Status** — See if friends' homes are open/closed for visits
+- **AI Trip Assistant** — AI-powered travel planning with itinerary generation
 
 ## Architecture
 
-- **Frontend:** React Native mobile app (Expo Go)
-- **Backend:** Node.js + Express
-- **Database:** SQLite
-- **AI:** Local DeepSeek model (with template fallback)
-- **Payments:** Stripe integration
+| Layer | Tech |
+|-------|------|
+| Mobile | React Native (Expo) |
+| Backend | Node.js + Express — hosted on DigitalOcean App Platform |
+| Database | SQLite (persisted on DO) |
+| Payments | Stripe Connect (live) |
+| Push Notifications | Expo Push Notification Service |
 
 ## Project Structure
 
@@ -30,8 +32,8 @@ A full-stack social adventure platform with friend management, trip planning, ex
 nostia-app/
 ├── server.js                    # Main Express server
 ├── database/
-│   └── db.js                    # SQLite database initialization
-├── models/                      # Data models
+│   └── db.js                    # SQLite schema + migrations
+├── models/                      # Data access layer
 │   ├── User.js
 │   ├── Friend.js
 │   ├── Trip.js
@@ -43,35 +45,76 @@ nostia-app/
 ├── middleware/
 │   └── auth.js                  # JWT authentication
 ├── services/
-│   ├── aiService.js             # AI integration
-│   ├── stripeService.js         # Stripe payments
-│   └── notificationService.js   # Push notifications
-├── nostia-mobile/               # React Native mobile app (Expo)
-│   ├── src/
-│   │   ├── screens/
-│   │   │   ├── HomeScreen.tsx
-│   │   │   ├── TripsScreen.tsx
-│   │   │   ├── FriendsScreen.tsx
-│   │   │   ├── VaultScreen.tsx
-│   │   │   ├── ChatScreen.tsx
-│   │   │   └── NotificationsScreen.tsx
-│   │   ├── components/
-│   │   │   ├── AIChatModal.tsx
-│   │   │   ├── CreatePostModal.tsx
-│   │   │   └── CommentsModal.tsx
-│   │   └── services/
-│   │       ├── api.ts
-│   │       ├── location.ts
-│   │       └── notifications.ts
-│   └── package.json
-└── README.md
+│   ├── stripeService.js         # Stripe Connect + webhook handling
+│   └── notificationService.js   # Expo push notifications
+└── nostia-mobile/               # React Native mobile app
+    ├── app.json                 # Expo config (package ID, version)
+    ├── App.tsx                  # Root: StripeProvider + Navigation
+    └── src/
+        ├── screens/
+        │   ├── HomeScreen.tsx
+        │   ├── TripsScreen.tsx
+        │   ├── FriendsScreen.tsx
+        │   ├── VaultScreen.tsx
+        │   ├── ChatScreen.tsx
+        │   └── NotificationsScreen.tsx
+        ├── components/
+        └── services/
+            ├── api.ts           # Axios client pointed at production API
+            └── notifications.ts
 ```
 
-## Quick Start
+---
+
+## Running the Mobile App Against the Production Backend
+
+The backend is deployed at:
+```
+https://king-prawn-app-44tki.ondigitalocean.app
+```
+
+You do **not** need to run the backend locally. The mobile app is pre-configured to point at the production server.
 
 ### Prerequisites
-- Node.js (v16 or higher)
-- Expo Go app on your phone (iOS or Android)
+
+- Node.js 18+
+- Expo CLI: `npm install -g expo-cli`
+- Expo Go app on your phone (iOS or Android) — [expo.dev/go](https://expo.dev/go)
+
+### 1. Install mobile dependencies
+
+```bash
+cd nostia-mobile
+npm install
+```
+
+### 2. Check the environment file
+
+`nostia-mobile/.env` should already contain:
+
+```env
+EXPO_PUBLIC_API_URL=https://king-prawn-app-44tki.ondigitalocean.app/api
+EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
+```
+
+These point the app directly at the production API and live Stripe. No local backend needed.
+
+### 3. Start Expo
+
+```bash
+cd nostia-mobile
+npx expo start
+```
+
+Scan the QR code in the terminal with **Expo Go** on your phone.
+
+> **Note:** The app uses live Stripe keys. Any card payments made during testing will be real charges. Use Stripe's [test card numbers](https://stripe.com/docs/testing#cards) only if you switch to test mode keys.
+
+---
+
+## Running the Backend Locally (Optional)
+
+Only needed if you're developing or testing backend changes before deploying.
 
 ### 1. Install backend dependencies
 
@@ -81,160 +124,150 @@ npm install
 
 ### 2. Configure environment variables
 
-Copy `.env.example` to `.env` and fill in your values:
-
-```bash
-cp .env.example .env
-```
+Create a `.env` file in the project root:
 
 ```env
+NODE_ENV=development
 PORT=3000
-JWT_SECRET=your-secret-key
+JWT_SECRET=any-local-secret-32-chars-min
+
+# Stripe — use TEST keys for local dev, never live keys locally
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_PUBLISHABLE_KEY=pk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
-# Optional - for local AI model:
-DEEPSEEK_URL=http://localhost:11434/api/generate
-DEEPSEEK_MODEL=deepseek-r1:1.5b
+
+# CORS (not enforced in development)
+ALLOWED_ORIGINS=http://localhost:3000
 ```
 
-### 3. Start the backend server
+### 3. Start the backend
 
 ```bash
-# Development (with auto-reload)
+# With auto-reload (development)
 npm run dev
 
-# Production
+# Production-like
 npm start
 ```
 
-Server runs on `http://localhost:3000`
+Server runs at `http://localhost:3000`.
 
-### 4. Install mobile dependencies
+### 4. Point the mobile app at local backend
 
-```bash
-cd nostia-mobile
-npm install
-```
-
-### 5. Configure mobile API URL
-
-The mobile app reads the API URL from the `EXPO_PUBLIC_API_URL` environment variable. Create `nostia-mobile/.env`:
+Update `nostia-mobile/.env`:
 
 ```env
 EXPO_PUBLIC_API_URL=http://YOUR-LOCAL-IP:3000/api
 ```
 
-Find your local IP: `ipconfig` (Windows) or `ifconfig` (Mac/Linux)
+Find your IP with `ipconfig` (Windows) or `ifconfig` (Mac/Linux). Must be your LAN IP, not `localhost`, so your phone can reach it.
 
-### 6. Start the mobile app
+### 5. Local Stripe webhook forwarding
 
-```bash
-cd nostia-mobile
-npx expo start
-```
-
-Scan the QR code with Expo Go on your phone.
-
-## Test Credentials
-
-| Username | Password | Name |
-|----------|----------|------|
-| testuser | password123 | Test User |
-| alex_explorer | password123 | Alex Rivera |
-| sarah_wanderer | password123 | Sarah Chen |
-
-## Stripe Payments
-
-### Setup
-1. Create account at [stripe.com](https://stripe.com)
-2. Add keys to `.env` (see above)
-
-### Test Cards
-- Success: `4242 4242 4242 4242`
-- Decline: `4000 0000 0000 0002`
-
-### Webhook (local testing)
 ```bash
 stripe listen --forward-to localhost:3000/api/stripe/webhook
 ```
 
-## AI Integration
+---
 
-The AI assistant falls back to templates if no local model is configured.
+## Deploying Backend Changes to DigitalOcean
 
-To use a local model (optional):
+Push to `main` — DigitalOcean Auto-Deploy picks it up automatically.
+
 ```bash
-# Install Ollama, then:
-ollama run deepseek-r1:1.5b
+git add .
+git commit -m "your message"
+git push origin main
 ```
 
-Set `DEEPSEEK_URL` and `DEEPSEEK_MODEL` in `.env`.
+The DO app rebuilds and redeploys. Monitor progress in the DO dashboard under **Runtime Logs**.
 
-## API Endpoints
+---
 
-### Authentication
-- `POST /api/auth/register` - Create account
-- `POST /api/auth/login` - Login
-- `GET /api/users/me` - Get current user
-- `PUT /api/users/me` - Update profile
+## Stripe Setup
 
-### Friends
-- `GET /api/friends` - Get all friends
-- `GET /api/friends/requests` - Get friend requests
-- `POST /api/friends/request` - Send friend request
-- `POST /api/friends/accept/:requestId` - Accept request
-- `DELETE /api/friends/reject/:requestId` - Reject request
+### Webhook events to enable (Stripe Dashboard → Developers → Webhooks)
 
-### Trips
-- `GET /api/trips` - Get user trips
-- `POST /api/trips` - Create trip
-- `DELETE /api/trips/:id` - Delete trip
-- `POST /api/trips/:id/invite` - Invite user to trip
+| Event | Purpose |
+|-------|---------|
+| `payment_intent.succeeded` | Mark split as paid |
+| `payment_intent.payment_failed` | Mark transaction as failed |
+| `charge.dispute.created` | Flag disputed splits, freeze vault |
+| `transfer.created` | Record transfer ID on transaction |
 
-### Feed
-- `GET /api/feed` - Get user feed
-- `POST /api/feed` - Create post
-- `POST /api/feed/:id/like` - Like post
-- `DELETE /api/feed/:id/like` - Unlike post
-- `GET /api/feed/:id/comments` - Get comments
-- `POST /api/feed/:id/comments` - Add comment
+Webhook endpoint:
+```
+https://king-prawn-app-44tki.ondigitalocean.app/api/stripe/webhook
+```
 
-### Events
-- `GET /api/events/upcoming` - Get upcoming events
-- `GET /api/events/nearby?lat=X&lng=Y&radius=50` - Get nearby events
+### Stripe Connect onboarding flow
 
-### Notifications
-- `GET /api/notifications` - Get all notifications
-- `GET /api/notifications/unread-count` - Get unread count
-- `PUT /api/notifications/:id/read` - Mark as read
-- `PUT /api/notifications/read-all` - Mark all as read
+Users who paid an expense must complete Stripe Connect onboarding before trip-mates can pay them via card. The app guides them through this in the Vault screen.
 
-### Messages
-- `GET /api/conversations` - Get all conversations
-- `POST /api/conversations` - Create/get conversation
-- `GET /api/conversations/:id/messages` - Get messages
-- `POST /api/conversations/:id/messages` - Send message
-
-### AI
-- `POST /api/ai/generate` - Generate content (itinerary, summary)
-- `POST /api/ai/chat` - Chat with AI assistant
-
-### Vault
-- `GET /api/vault/trip/:tripId` - Get trip expenses
-- `POST /api/vault` - Create expense
-- `PUT /api/vault/splits/:splitId/paid` - Mark as paid
-
-### Stripe
-- `POST /api/stripe/payment-intent` - Create payment intent
-- `POST /api/stripe/webhook` - Stripe webhook handler
+---
 
 ## Security
 
-- JWT authentication (7-day expiration)
-- Password hashing with bcrypt
-- Secure token storage (SecureStore on mobile)
-- Protected API routes
+- JWT authentication (7-day expiration), tokens stored in SecureStore
+- Passwords hashed with bcrypt
+- HTTPS enforced in production via `x-forwarded-proto` header check
+- CORS restricted to `ALLOWED_ORIGINS` in production
+- Rate limiting: 15 req/15 min on auth, 10 req/15 min on payment endpoints, 300 req/15 min general
+- Stripe webhook signatures verified on every event
+- Sensitive audit actions logged to `audit_log` DB table
+
+---
+
+## API Reference
+
+### Auth
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/auth/register` | Create account |
+| POST | `/api/auth/login` | Login |
+| GET | `/api/users/me` | Get current user |
+| PUT | `/api/users/me` | Update profile |
+
+### Friends
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/friends` | Get all friends |
+| GET | `/api/friends/requests` | Get pending requests |
+| POST | `/api/friends/request` | Send friend request |
+| POST | `/api/friends/accept/:id` | Accept request |
+| DELETE | `/api/friends/reject/:id` | Reject request |
+
+### Trips & Vault
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/trips` | Get user trips |
+| POST | `/api/trips` | Create trip |
+| POST | `/api/trips/:id/invite` | Invite user |
+| GET | `/api/vault/trip/:tripId` | Get trip expenses + balances |
+| POST | `/api/vault` | Add expense |
+| PUT | `/api/vault/splits/:splitId/paid` | Mark split settled (manual) |
+| POST | `/api/vault/splits/:splitId/payment-intent` | Create Stripe PaymentIntent for split |
+
+### Stripe
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/stripe/connect/onboard` | Start Connect onboarding |
+| GET | `/api/stripe/connect/status` | Check onboarding status |
+| POST | `/api/stripe/webhook` | Stripe webhook handler |
+
+### Feed, Events, Notifications, Messages
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/feed` | Get social feed |
+| POST | `/api/feed` | Create post |
+| GET | `/api/events/upcoming` | Upcoming events |
+| GET | `/api/events/nearby?lat=X&lng=Y` | Nearby events |
+| GET | `/api/notifications` | All notifications |
+| PUT | `/api/notifications/read-all` | Mark all read |
+| GET | `/api/conversations` | All conversations |
+| POST | `/api/conversations/:id/messages` | Send message |
+
+---
 
 ## License
 
