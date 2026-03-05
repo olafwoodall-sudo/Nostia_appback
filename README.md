@@ -1,32 +1,26 @@
 # NOSTIA MVP - Social Adventure Platform
 
-A complete full-stack social adventure platform with friend management, trip planning, expense tracking (Vault), adventure discovery, real-time notifications, direct messaging, and AI-powered trip planning.
+A full-stack social adventure platform with friend management, trip planning, expense tracking (Vault), adventure discovery, real-time notifications, direct messaging, and AI-powered trip planning.
 
 ## Features
 
-### Core Features
 - **Authentication** - Secure login/register with JWT tokens
 - **Friend Management** - Add friends, manage requests, view friend status
 - **Trip Planning** - Create trips, invite participants, track expenses
 - **Vault (Expense Tracking)** - Split expenses, track balances, Stripe payments
 - **Adventure Discovery** - Browse and discover adventures by category
 - **Social Feed** - Photo feed with likes, comments, and image uploads
-
-### New Features (Latest Update)
-- **Notifications System** - Real-time notifications for friend requests, trip invitations, and more
-- **Direct Messaging** - Chat with friends in real-time
-- **Photo Feed** - Share photos with captions, likes, and comments (Base64 storage)
+- **Notifications** - Real-time notifications for friend requests, trip invitations, and more
+- **Direct Messaging** - Chat with friends
 - **Nearby Events** - Location-based event discovery using GPS
 - **Friend House Status** - See if friends' homes are open/closed for visits
 - **AI Trip Assistant** - AI-powered travel planning with itinerary generation
-- **Responsive UI** - Mobile app adapts to all screen sizes (phones and tablets)
-- **Delete Trips** - Remove trips with confirmation
 
 ## Architecture
 
-- **Frontend:** React (Web Client) + React Native (Mobile via Expo Go)
+- **Frontend:** React Native mobile app (Expo Go)
 - **Backend:** Node.js + Express
-- **Database:** SQLite (no cloud dependencies)
+- **Database:** SQLite
 - **AI:** Local DeepSeek model (with template fallback)
 - **Payments:** Stripe integration
 
@@ -45,41 +39,30 @@ nostia-app/
 │   ├── Vault.js
 │   ├── Feed.js
 │   ├── Adventure.js
-│   └── Message.js               # Direct messaging
+│   └── Message.js
 ├── middleware/
 │   └── auth.js                  # JWT authentication
 ├── services/
 │   ├── aiService.js             # AI integration
 │   ├── stripeService.js         # Stripe payments
 │   └── notificationService.js   # Push notifications
-├── client/                      # React web client
-│   ├── src/
-│   │   ├── App.jsx              # Main app with all features
-│   │   ├── api.js               # Complete API client
-│   │   └── components/
-│   │       ├── AIChatModal.jsx  # AI chat interface
-│   │       └── PaymentModal.jsx # Stripe payments
-│   └── package.json
 ├── nostia-mobile/               # React Native mobile app (Expo)
 │   ├── src/
 │   │   ├── screens/
-│   │   │   ├── HomeScreen.tsx       # Dashboard with AI button
-│   │   │   ├── TripsScreen.tsx      # Trips with AI planning
-│   │   │   ├── FriendsScreen.tsx    # Friends with house status
-│   │   │   ├── ChatScreen.tsx       # Direct messaging
+│   │   │   ├── HomeScreen.tsx
+│   │   │   ├── TripsScreen.tsx
+│   │   │   ├── FriendsScreen.tsx
+│   │   │   ├── VaultScreen.tsx
+│   │   │   ├── ChatScreen.tsx
 │   │   │   └── NotificationsScreen.tsx
 │   │   ├── components/
-│   │   │   ├── AIChatModal.tsx      # AI assistant
-│   │   │   ├── CreatePostModal.tsx  # Photo posts
-│   │   │   └── CommentsModal.tsx    # Post comments
-│   │   ├── hooks/
-│   │   │   └── useResponsive.ts     # Responsive dimensions
-│   │   ├── utils/
-│   │   │   └── responsive.ts        # Responsive utilities
+│   │   │   ├── AIChatModal.tsx
+│   │   │   ├── CreatePostModal.tsx
+│   │   │   └── CommentsModal.tsx
 │   │   └── services/
-│   │       ├── api.ts               # Complete API client
-│   │       ├── location.ts          # GPS location
-│   │       └── notifications.ts     # Push notifications
+│   │       ├── api.ts
+│   │       ├── location.ts
+│   │       └── notifications.ts
 │   └── package.json
 └── README.md
 ```
@@ -88,38 +71,70 @@ nostia-app/
 
 ### Prerequisites
 - Node.js (v16 or higher)
-- npm or yarn
+- Expo Go app on your phone (iOS or Android)
 
-### Installation
+### 1. Install backend dependencies
 
-1. **Clone the repository**
-```bash
-git clone https://github.com/yourusername/nostia-app.git
-cd nostia-app
-```
-
-2. **Install backend dependencies**
 ```bash
 npm install
 ```
 
-3. **Install frontend dependencies**
+### 2. Configure environment variables
+
+Copy `.env.example` to `.env` and fill in your values:
+
 ```bash
-cd client && npm install && cd ..
+cp .env.example .env
 ```
 
-4. **Start the backend server**
+```env
+PORT=3000
+JWT_SECRET=your-secret-key
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+# Optional - for local AI model:
+DEEPSEEK_URL=http://localhost:11434/api/generate
+DEEPSEEK_MODEL=deepseek-r1:1.5b
+```
+
+### 3. Start the backend server
+
 ```bash
+# Development (with auto-reload)
+npm run dev
+
+# Production
 npm start
 ```
+
 Server runs on `http://localhost:3000`
 
-5. **Start the web client** (new terminal)
+### 4. Install mobile dependencies
+
 ```bash
-cd client
-npm run dev
+cd nostia-mobile
+npm install
 ```
-Client runs on `http://localhost:5173`
+
+### 5. Configure mobile API URL
+
+The mobile app reads the API URL from the `EXPO_PUBLIC_API_URL` environment variable. Create `nostia-mobile/.env`:
+
+```env
+EXPO_PUBLIC_API_URL=http://YOUR-LOCAL-IP:3000/api
+```
+
+Find your local IP: `ipconfig` (Windows) or `ifconfig` (Mac/Linux)
+
+### 6. Start the mobile app
+
+```bash
+cd nostia-mobile
+npx expo start
+```
+
+Scan the QR code with Expo Go on your phone.
 
 ## Test Credentials
 
@@ -129,16 +144,43 @@ Client runs on `http://localhost:5173`
 | alex_explorer | password123 | Alex Rivera |
 | sarah_wanderer | password123 | Sarah Chen |
 
+## Stripe Payments
+
+### Setup
+1. Create account at [stripe.com](https://stripe.com)
+2. Add keys to `.env` (see above)
+
+### Test Cards
+- Success: `4242 4242 4242 4242`
+- Decline: `4000 0000 0000 0002`
+
+### Webhook (local testing)
+```bash
+stripe listen --forward-to localhost:3000/api/stripe/webhook
+```
+
+## AI Integration
+
+The AI assistant falls back to templates if no local model is configured.
+
+To use a local model (optional):
+```bash
+# Install Ollama, then:
+ollama run deepseek-r1:1.5b
+```
+
+Set `DEEPSEEK_URL` and `DEEPSEEK_MODEL` in `.env`.
+
 ## API Endpoints
 
 ### Authentication
 - `POST /api/auth/register` - Create account
 - `POST /api/auth/login` - Login
 - `GET /api/users/me` - Get current user
-- `PUT /api/users/me` - Update profile (including homeStatus)
+- `PUT /api/users/me` - Update profile
 
 ### Friends
-- `GET /api/friends` - Get all friends (includes homeStatus)
+- `GET /api/friends` - Get all friends
 - `GET /api/friends/requests` - Get friend requests
 - `POST /api/friends/request` - Send friend request
 - `POST /api/friends/accept/:requestId` - Accept request
@@ -152,7 +194,7 @@ Client runs on `http://localhost:5173`
 
 ### Feed
 - `GET /api/feed` - Get user feed
-- `POST /api/feed` - Create post (with optional imageData)
+- `POST /api/feed` - Create post
 - `POST /api/feed/:id/like` - Like post
 - `DELETE /api/feed/:id/like` - Unlike post
 - `GET /api/feed/:id/comments` - Get comments
@@ -170,7 +212,7 @@ Client runs on `http://localhost:5173`
 
 ### Messages
 - `GET /api/conversations` - Get all conversations
-- `POST /api/conversations` - Create/get conversation with user
+- `POST /api/conversations` - Create/get conversation
 - `GET /api/conversations/:id/messages` - Get messages
 - `POST /api/conversations/:id/messages` - Send message
 
@@ -183,90 +225,9 @@ Client runs on `http://localhost:5173`
 - `POST /api/vault` - Create expense
 - `PUT /api/vault/splits/:splitId/paid` - Mark as paid
 
-## Mobile App Setup (Expo Go)
-
-### Installation
-```bash
-cd nostia-mobile
-npm install
-```
-
-### Configuration
-Update the API URL in `nostia-mobile/src/services/api.ts`:
-```typescript
-const API_BASE_URL = 'http://YOUR-LOCAL-IP:3000/api';
-```
-Find your IP: `ipconfig` (Windows) or `ifconfig` (Mac/Linux)
-
-### Running
-```bash
-npx expo start
-```
-Scan QR code with Expo Go app.
-
-### Mobile Features
-- **Home Screen** - Dashboard with stats, home status toggle, AI assistant button
-- **Trips Screen** - Trip list with AI planning, vault access, delete option
-- **Friends Screen** - Friend list with house status badges, direct messaging
-- **Discover Screen** - Photo feed, adventures, events
-- **Notifications Screen** - All notifications with unread badges
-- **Chat Screen** - Direct messaging with friends
-- **AI Chat Modal** - Travel planning assistant with quick actions
-
-## AI Integration
-
-### Using the AI Assistant
-
-**Web Client:**
-- Click the purple AI button (bottom-right corner) for general help
-- Click "AI Plan" on any trip card for trip-specific planning
-
-**Mobile App:**
-- Tap the floating sparkles button on Home screen
-- Tap "AI Plan" on any trip card in Trips screen
-
-### AI Features
-- Create detailed itineraries
-- Activity recommendations
-- Budget tips
-- Packing lists
-- Trip-context aware suggestions
-
-### AI Setup (Optional)
-The AI system falls back to templates if no model is running.
-
-To use the local model:
-```bash
-cd deepseek-finetuned
-# Windows: start-model.bat
-# Mac/Linux: ./start-model.sh
-```
-
-## Stripe Payments
-
-### Setup
-1. Create account at [stripe.com](https://stripe.com)
-2. Add keys to `.env`:
-```env
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_PUBLISHABLE_KEY=pk_test_...
-```
-
-### Test Cards
-- Success: `4242 4242 4242 4242`
-- Decline: `4000 0000 0000 0002`
-
-## Environment Variables
-
-Create `.env` in root:
-```env
-PORT=3000
-JWT_SECRET=your-secret-key
-DEEPSEEK_URL=http://localhost:11434/api/generate
-DEEPSEEK_MODEL=deepseek-finetuned
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_PUBLISHABLE_KEY=pk_test_...
-```
+### Stripe
+- `POST /api/stripe/payment-intent` - Create payment intent
+- `POST /api/stripe/webhook` - Stripe webhook handler
 
 ## Security
 
@@ -275,17 +236,6 @@ STRIPE_PUBLISHABLE_KEY=pk_test_...
 - Secure token storage (SecureStore on mobile)
 - Protected API routes
 
-## Known Limitations (MVP)
-
-- HTTP polling for messages (5-10 second intervals)
-- Base64 image storage (5MB limit)
-- Basic expense splitting (equal splits)
-- Template-based AI fallback
-
 ## License
 
 MIT
-
----
-
-Happy adventuring with Nostia!

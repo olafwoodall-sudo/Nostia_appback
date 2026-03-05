@@ -532,6 +532,40 @@ function initializeDatabase() {
     // Column already exists
   }
 
+  // Audit log table (persistent record of sensitive actions)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS audit_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      action TEXT NOT NULL,
+      userId INTEGER,
+      ipAddress TEXT,
+      details TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL
+    )
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_audit_log_user ON audit_log(userId)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_audit_log_action ON audit_log(action)`);
+
+  // Payment production columns on vault_transactions
+  try {
+    db.exec(`ALTER TABLE vault_transactions ADD COLUMN transferId TEXT`);
+  } catch (e) {}
+
+  try {
+    db.exec(`ALTER TABLE vault_transactions ADD COLUMN failureReason TEXT`);
+  } catch (e) {}
+
+  // Dispute flag on vault_splits
+  try {
+    db.exec(`ALTER TABLE vault_splits ADD COLUMN disputeFlag BOOLEAN DEFAULT 0`);
+  } catch (e) {}
+
+  // Dispute flag on vault_members
+  try {
+    db.exec(`ALTER TABLE vault_members ADD COLUMN disputeFlag BOOLEAN DEFAULT 0`);
+  } catch (e) {}
+
   console.log('✅ Database tables initialized successfully');
 }
 

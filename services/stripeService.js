@@ -109,18 +109,56 @@ class StripeService {
         }
         break;
       }
+
+      case 'payment_intent.payment_failed': {
+        const pi = event.data.object;
+        const { splitId, type, vaultId, memberId } = pi.metadata || {};
+        const reason = pi.last_payment_error?.message || 'Payment failed';
+        if (type === 'vault_split' && splitId) {
+          db.prepare(`UPDATE vault_transactions SET status = 'failed', failureReason = ? WHERE stripePaymentIntentId = ?`)
+            .run(reason, pi.id);
+          console.log(`❌ Vault split ${splitId} payment failed: ${reason}`);
+        } else if (vaultId && memberId) {
+          db.prepare(`UPDATE vault_members SET status = 'failed' WHERE id = ? AND vault_id = ?`)
+            .run(parseInt(memberId), parseInt(vaultId));
+          console.log(`❌ Vault member ${memberId} payment failed: ${reason}`);
+        }
+        break;
+      }
+
       case 'charge.dispute.created': {
         const charge = event.data.object;
         const piId = charge.payment_intent;
         if (piId) {
-          const member = db.prepare('SELECT vault_id FROM vault_members WHERE stripe_payment_intent_id = ?').get(piId);
+          // Handle dispute for trip expense split (vault_transactions)
+          const txn = db.prepare('SELECT vaultSplitId FROM vault_transactions WHERE stripePaymentIntentId = ?').get(piId);
+          if (txn) {
+            db.prepare(`UPDATE vault_splits SET disputeFlag = 1 WHERE id = ?`).run(txn.vaultSplitId);
+            db.prepare(`UPDATE vault_transactions SET status = 'disputed' WHERE stripePaymentIntentId = ?`).run(piId);
+            console.log(`⚠️ Vault split ${txn.vaultSplitId} flagged for dispute`);
+          }
+          // Handle dispute for vault_members (legacy vault system)
+          const member = db.prepare('SELECT vault_id, id FROM vault_members WHERE stripe_payment_intent_id = ?').get(piId);
           if (member) {
+            db.prepare(`UPDATE vault_members SET disputeFlag = 1 WHERE id = ?`).run(member.id);
             db.prepare(`UPDATE vaults SET status = 'frozen' WHERE id = ?`).run(member.vault_id);
             console.log(`⚠️ Vault ${member.vault_id} frozen due to dispute`);
           }
         }
         break;
       }
+
+      case 'transfer.created': {
+        const transfer = event.data.object;
+        const piId = transfer.source_transaction;
+        if (piId) {
+          db.prepare(`UPDATE vault_transactions SET transferId = ? WHERE stripePaymentIntentId = ?`)
+            .run(transfer.id, piId);
+        }
+        console.log(`💸 Transfer ${transfer.id} created: $${(transfer.amount / 100).toFixed(2)}`);
+        break;
+      }
+
       default:
         console.log('ℹ️ Unhandled webhook event type:', event.type);
     }

@@ -89,6 +89,15 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Strict rate limiter for payment endpoints (10 attempts per 15 min)
+const paymentLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many payment requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.use('/api/', apiLimiter);
 
 // Standard middleware
@@ -144,15 +153,19 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-// Audit logger for sensitive actions
-function auditLog(action, userId, details = {}) {
-  const entry = {
-    timestamp: new Date().toISOString(),
-    action,
-    userId,
-    ...details,
-  };
-  console.log(`[AUDIT] ${JSON.stringify(entry)}`);
+// Audit logger for sensitive actions (logs to console + DB)
+function auditLog(action, userId, details = {}, req = null) {
+  const { ipAddress, ...rest } = details;
+  const ip = ipAddress || req?.ip || null;
+  const safeDetails = JSON.stringify(rest);
+  console.log(`[AUDIT] ${new Date().toISOString()} | ${action} | user:${userId} | ip:${ip} | ${safeDetails}`);
+  try {
+    db.prepare(
+      'INSERT INTO audit_log (action, userId, ipAddress, details) VALUES (?, ?, ?, ?)'
+    ).run(action, userId || null, ip, safeDetails);
+  } catch (e) {
+    console.error('[AUDIT] Failed to write to DB:', e.message);
+  }
 }
 
 // ==================== ANALYTICS KILL-SWITCH ====================
@@ -1714,7 +1727,7 @@ app.get('/api/vault/:vaultId', authenticateToken, (req, res) => {
 
 // Create PaymentIntent for a vault member's split
 // POST /api/vault/pay  { vaultId, memberId }
-app.post('/api/vault/pay', authenticateToken, [
+app.post('/api/vault/pay', paymentLimiter, authenticateToken, [
   body('vaultId').isInt({ gt: 0 }).withMessage('vaultId is required'),
   body('memberId').isInt({ gt: 0 }).withMessage('memberId is required'),
   handleValidationErrors
@@ -1737,7 +1750,7 @@ app.post('/api/vault/pay', authenticateToken, [
 
 // Create PaymentIntent for a trip expense split (card payment)
 // POST /api/vault/splits/:splitId/payment-intent
-app.post('/api/vault/splits/:splitId/payment-intent', authenticateToken, async (req, res) => {
+app.post('/api/vault/splits/:splitId/payment-intent', paymentLimiter, authenticateToken, async (req, res) => {
   try {
     const splitId = parseInt(req.params.splitId);
 

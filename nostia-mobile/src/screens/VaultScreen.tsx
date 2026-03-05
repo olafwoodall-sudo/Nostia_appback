@@ -16,6 +16,10 @@ import { useStripe } from '@stripe/stripe-react-native';
 import { vaultAPI } from '../services/api';
 import CreateExpenseModal from '../components/CreateExpenseModal';
 
+// Mirror of server-side calculateChargedAmount (2.9% + $0.30 Stripe fee passed to payer)
+const calculateChargedAmount = (owed: number): number =>
+  Math.ceil(((owed + 0.30) / (1 - 0.029)) * 100) / 100;
+
 export default function VaultScreen({ route }: any) {
   const { tripId, tripTitle } = route.params;
   const [vaultData, setVaultData] = useState<any>(null);
@@ -238,14 +242,19 @@ export default function VaultScreen({ route }: any) {
         {vaultData?.unpaidSplits && vaultData.unpaidSplits.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>My Dues</Text>
-            {vaultData.unpaidSplits.map((split: any) => (
+            {vaultData.unpaidSplits.map((split: any) => {
+              const charged = calculateChargedAmount(split.amount);
+              const fee = (charged - split.amount).toFixed(2);
+              return (
               <View key={split.id} style={styles.dueCard}>
                 <View style={styles.dueInfo}>
                   <Text style={styles.dueDescription}>{split.description}</Text>
                   <Text style={styles.duePaidBy}>Owed to {split.paidByName}</Text>
+                  <Text style={styles.dueFeeNote}>+${fee} processing fee</Text>
                 </View>
                 <View style={styles.dueRight}>
-                  <Text style={styles.dueAmount}>${split.amount?.toFixed(2)}</Text>
+                  <Text style={styles.dueAmount}>${charged.toFixed(2)}</Text>
+                  <Text style={styles.dueAmountSub}>you owe ${split.amount?.toFixed(2)}</Text>
                   <TouchableOpacity
                     style={[styles.payCardButton, payingId === split.id && styles.payCardButtonDisabled]}
                     onPress={() => handlePayWithCard(split)}
@@ -262,7 +271,8 @@ export default function VaultScreen({ route }: any) {
                   </TouchableOpacity>
                 </View>
               </View>
-            ))}
+              );
+            })}
           </View>
         )}
 
@@ -604,10 +614,20 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: 8,
   },
+  dueFeeNote: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 3,
+  },
   dueAmount: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#F59E0B',
+  },
+  dueAmountSub: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: -4,
   },
   payCardButton: {
     backgroundColor: '#6366F1',
