@@ -1,3 +1,4 @@
+import { ms } from '../utils/scale';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -231,7 +232,7 @@ function EditTripModal({ visible, trip, onClose, onSaved }: { visible: boolean; 
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' }}>
             <View style={{ backgroundColor: '#1F2937', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '90%', paddingBottom: 20 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#374151' }}>
-                <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#FFFFFF' }}>Edit Trip</Text>
+                <Text style={{ fontSize: ms(20), fontWeight: 'bold', color: '#FFFFFF' }}>Edit Trip</Text>
                 <TouchableOpacity onPress={onClose}><Ionicons name="close" size={28} color="#FFFFFF" /></TouchableOpacity>
               </View>
               <ScrollView style={{ padding: 20 }} showsVerticalScrollIndicator={false}>
@@ -242,21 +243,21 @@ function EditTripModal({ visible, trip, onClose, onSaved }: { visible: boolean; 
                   { label: 'End Date', value: endDate, setter: setEndDate, placeholder: 'YYYY-MM-DD' },
                 ].map(({ label, value, setter, placeholder }) => (
                   <View key={label} style={{ marginBottom: 16 }}>
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#D1D5DB', marginBottom: 6 }}>{label}</Text>
-                    <TextInput style={{ backgroundColor: '#374151', borderRadius: 8, padding: 14, fontSize: 15, color: '#FFFFFF', borderWidth: 1, borderColor: '#4B5563' }} value={value} onChangeText={setter} placeholder={placeholder} placeholderTextColor="#6B7280" />
+                    <Text style={{ fontSize: ms(13), fontWeight: '600', color: '#D1D5DB', marginBottom: 6 }}>{label}</Text>
+                    <TextInput style={{ backgroundColor: '#374151', borderRadius: 8, padding: 14, fontSize: ms(15), color: '#FFFFFF', borderWidth: 1, borderColor: '#4B5563' }} value={value} onChangeText={setter} placeholder={placeholder} placeholderTextColor="#6B7280" />
                   </View>
                 ))}
                 <View style={{ marginBottom: 16 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#D1D5DB', marginBottom: 6 }}>Description</Text>
-                  <TextInput style={{ backgroundColor: '#374151', borderRadius: 8, padding: 14, fontSize: 15, color: '#FFFFFF', borderWidth: 1, borderColor: '#4B5563', minHeight: 80, textAlignVertical: 'top' }} value={description} onChangeText={setDescription} placeholder="Trip notes..." placeholderTextColor="#6B7280" multiline />
+                  <Text style={{ fontSize: ms(13), fontWeight: '600', color: '#D1D5DB', marginBottom: 6 }}>Description</Text>
+                  <TextInput style={{ backgroundColor: '#374151', borderRadius: 8, padding: 14, fontSize: ms(15), color: '#FFFFFF', borderWidth: 1, borderColor: '#4B5563', minHeight: 80, textAlignVertical: 'top' }} value={description} onChangeText={setDescription} placeholder="Trip notes..." placeholderTextColor="#6B7280" multiline />
                 </View>
               </ScrollView>
               <View style={{ flexDirection: 'row', paddingHorizontal: 20, gap: 12 }}>
                 <TouchableOpacity style={{ flex: 1, backgroundColor: '#374151', borderRadius: 12, padding: 16, alignItems: 'center' }} onPress={onClose} disabled={saving}>
-                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#D1D5DB' }}>Cancel</Text>
+                  <Text style={{ fontSize: ms(16), fontWeight: '600', color: '#D1D5DB' }}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={{ flex: 1, backgroundColor: '#3B82F6', borderRadius: 12, padding: 16, alignItems: 'center' }} onPress={handleSave} disabled={saving}>
-                  {saving ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={{ fontSize: 16, fontWeight: '600', color: '#FFFFFF' }}>Save Changes</Text>}
+                  {saving ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={{ fontSize: ms(16), fontWeight: '600', color: '#FFFFFF' }}>Save Changes</Text>}
                 </TouchableOpacity>
               </View>
             </View>
@@ -300,13 +301,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tripTitle: {
-    fontSize: 18,
+    fontSize: ms(18),
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 4,
   },
   tripDestination: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#9CA3AF',
   },
   dateBadge: {
@@ -318,12 +319,12 @@ const styles = StyleSheet.create({
     borderColor: '#3B82F6',
   },
   dateText: {
-    fontSize: 12,
+    fontSize: ms(12),
     color: '#93C5FD',
     fontWeight: '600',
   },
   tripDescription: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#D1D5DB',
     marginBottom: 12,
   },
@@ -341,11 +342,11 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   statText: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#D1D5DB',
   },
   vaultText: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#10B981',
     fontWeight: '600',
   },
@@ -365,13 +366,13 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyText: {
-    fontSize: 20,
+    fontSize: ms(20),
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginTop: 16,
   },
   emptySubtext: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#9CA3AF',
     marginTop: 8,
   },

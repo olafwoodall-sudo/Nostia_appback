@@ -1,3 +1,4 @@
+import { ms } from '../utils/scale';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -221,11 +222,11 @@ const styles = StyleSheet.create({
     borderBottomColor: '#374151',
   },
   unreadText: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#9CA3AF',
   },
   markAllText: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#3B82F6',
     fontWeight: '600',
   },
@@ -259,19 +260,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   notificationTitle: {
-    fontSize: 16,
+    fontSize: ms(16),
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 4,
   },
   notificationBody: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#D1D5DB',
     lineHeight: 20,
     marginBottom: 4,
   },
   notificationTime: {
-    fontSize: 12,
+    fontSize: ms(12),
     color: '#6B7280',
   },
   unreadDot: {
@@ -287,13 +288,13 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyText: {
-    fontSize: 20,
+    fontSize: ms(20),
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginTop: 16,
   },
   emptySubtext: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#9CA3AF',
     marginTop: 8,
   },

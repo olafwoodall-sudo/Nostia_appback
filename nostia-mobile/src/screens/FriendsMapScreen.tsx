@@ -1,3 +1,4 @@
+import { ms } from '../utils/scale';
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
@@ -104,9 +105,9 @@ export default function FriendsMapScreen() {
                 <div style={{ textAlign: 'center', minWidth: 100 }}>
                   <strong>{friend.name}</strong>
                   <br />
-                  <span style={{ color: '#6B7280', fontSize: 12 }}>@{friend.username}</span>
+                  <span style={{ color: '#6B7280', fontSize: ms(12) }}>@{friend.username}</span>
                   <br />
-                  <span style={{ color: '#9CA3AF', fontSize: 11 }}>
+                  <span style={{ color: '#9CA3AF', fontSize: ms(11) }}>
                     Updated {formatUpdated(friend.updatedAt)}
                   </span>
                 </div>
@@ -149,12 +150,12 @@ const styles = StyleSheet.create({
     borderBottomColor: '#374151',
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: ms(22),
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
   headerSub: {
-    fontSize: 13,
+    fontSize: ms(13),
     color: '#9CA3AF',
     marginTop: 2,
   },
@@ -174,13 +175,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyTitle: {
-    fontSize: 16,
+    fontSize: ms(16),
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 6,
   },
   emptyText: {
-    fontSize: 13,
+    fontSize: ms(13),
     color: '#9CA3AF',
     textAlign: 'center',
     lineHeight: 18,

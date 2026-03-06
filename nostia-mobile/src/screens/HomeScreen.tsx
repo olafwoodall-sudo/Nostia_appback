@@ -1,3 +1,4 @@
+import { ms } from '../utils/scale';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -357,16 +358,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   welcomeTitle: {
-    fontSize: 18,
+    fontSize: ms(18),
     color: '#E0E7FF',
   },
   welcomeName: {
-    fontSize: 28,
+    fontSize: ms(28),
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
   welcomeSubtitle: {
-    fontSize: 16,
+    fontSize: ms(16),
     color: '#E0E7FF',
   },
   logoutButton: {
@@ -387,7 +388,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   statusTitle: {
-    fontSize: 18,
+    fontSize: ms(18),
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
@@ -403,12 +404,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#374151',
   },
   statusToggleText: {
-    fontSize: 14,
+    fontSize: ms(14),
     fontWeight: '600',
     color: '#FFFFFF',
   },
   statusDescription: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#9CA3AF',
   },
   statsContainer: {
@@ -426,13 +427,13 @@ const styles = StyleSheet.create({
     borderColor: '#374151',
   },
   statNumber: {
-    fontSize: 24,
+    fontSize: ms(24),
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginTop: 8,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: ms(12),
     color: '#9CA3AF',
     marginTop: 4,
   },
@@ -446,12 +447,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: ms(18),
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
   seeAllText: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#3B82F6',
     fontWeight: '600',
   },
@@ -470,13 +471,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   tripPreviewTitle: {
-    fontSize: 16,
+    fontSize: ms(16),
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 4,
   },
   tripPreviewDestination: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#9CA3AF',
   },
   tripPreviewMeta: {
@@ -485,11 +486,11 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   tripPreviewMetaText: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#9CA3AF',
   },
   tripPreviewDate: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#3B82F6',
     fontWeight: '600',
   },
@@ -502,13 +503,13 @@ const styles = StyleSheet.create({
     borderColor: '#374151',
   },
   eventPreviewTitle: {
-    fontSize: 16,
+    fontSize: ms(16),
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 8,
   },
   eventPreviewLocation: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#9CA3AF',
     marginBottom: 4,
   },
@@ -519,7 +520,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   eventPreviewDate: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#F59E0B',
     fontWeight: '600',
   },
@@ -530,7 +531,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   distanceText: {
-    fontSize: 12,
+    fontSize: ms(12),
     color: '#FFFFFF',
     fontWeight: '600',
   },
@@ -549,12 +550,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   locationTitle: {
-    fontSize: 14,
+    fontSize: ms(14),
     fontWeight: '600',
     color: '#FFFFFF',
   },
   locationStatus: {
-    fontSize: 12,
+    fontSize: ms(12),
     color: '#9CA3AF',
     marginLeft: 28,
   },

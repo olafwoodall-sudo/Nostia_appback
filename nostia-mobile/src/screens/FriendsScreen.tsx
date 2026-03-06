@@ -1,3 +1,4 @@
+import { ms } from '../utils/scale';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -320,7 +321,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 44,
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: ms(16),
   },
   searchButton: {
     backgroundColor: '#3B82F6',
@@ -331,7 +332,7 @@ const styles = StyleSheet.create({
   },
   searchButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: ms(16),
     fontWeight: '600',
   },
   tabContainer: {
@@ -352,7 +353,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     color: '#9CA3AF',
-    fontSize: 14,
+    fontSize: ms(14),
     fontWeight: '600',
   },
   activeTabText: {
@@ -381,7 +382,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   friendInitial: {
-    fontSize: 20,
+    fontSize: ms(20),
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
@@ -389,13 +390,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   friendName: {
-    fontSize: 16,
+    fontSize: ms(16),
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 4,
   },
   friendUsername: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#9CA3AF',
   },
   friendActions: {
@@ -423,7 +424,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#374151',
   },
   statusText: {
-    fontSize: 12,
+    fontSize: ms(12),
     color: '#FFFFFF',
     fontWeight: '600',
   },
@@ -461,13 +462,13 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyText: {
-    fontSize: 20,
+    fontSize: ms(20),
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginTop: 16,
   },
   emptySubtext: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#9CA3AF',
     marginTop: 8,
   },

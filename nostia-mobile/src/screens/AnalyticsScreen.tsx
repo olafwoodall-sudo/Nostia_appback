@@ -1,3 +1,4 @@
+import { ms } from '../utils/scale';
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -390,7 +391,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#3B82F6',
   },
   rangeButtonText: {
-    fontSize: 13,
+    fontSize: ms(13),
     fontWeight: '600',
     color: '#9CA3AF',
   },
@@ -409,13 +410,13 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   summaryValue: {
-    fontSize: 24,
+    fontSize: ms(24),
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginTop: 8,
   },
   summaryLabel: {
-    fontSize: 12,
+    fontSize: ms(12),
     color: 'rgba(255,255,255,0.7)',
     marginTop: 2,
   },
@@ -440,12 +441,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: ms(16),
     fontWeight: '600',
     color: '#FFFFFF',
   },
   emptyText: {
-    fontSize: 13,
+    fontSize: ms(13),
     color: '#6B7280',
   },
   barRow: {
@@ -455,7 +456,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   barLabel: {
-    fontSize: 11,
+    fontSize: ms(11),
     color: '#9CA3AF',
     width: 90,
   },
@@ -472,7 +473,7 @@ const styles = StyleSheet.create({
     minWidth: 4,
   },
   barValue: {
-    fontSize: 11,
+    fontSize: ms(11),
     color: '#9CA3AF',
     width: 40,
     textAlign: 'right',
@@ -490,12 +491,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sessionStatValue: {
-    fontSize: 18,
+    fontSize: ms(18),
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
   sessionStatLabel: {
-    fontSize: 11,
+    fontSize: ms(11),
     color: '#9CA3AF',
     marginTop: 4,
   },
@@ -503,7 +504,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   platformLabel: {
-    fontSize: 11,
+    fontSize: ms(11),
     color: '#6B7280',
     marginBottom: 6,
   },
@@ -522,12 +523,12 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   platformName: {
-    fontSize: 12,
+    fontSize: ms(12),
     fontWeight: '600',
     color: '#FFFFFF',
   },
   platformCount: {
-    fontSize: 12,
+    fontSize: ms(12),
     color: '#9CA3AF',
   },
   funnelStep: {
@@ -539,12 +540,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   funnelStepName: {
-    fontSize: 12,
+    fontSize: ms(12),
     color: '#9CA3AF',
     textTransform: 'capitalize',
   },
   funnelStepValue: {
-    fontSize: 12,
+    fontSize: ms(12),
     color: '#FFFFFF',
     fontWeight: '600',
   },
@@ -564,7 +565,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#374151',
   },
   retentionHeaderText: {
-    fontSize: 12,
+    fontSize: ms(12),
     fontWeight: '600',
     color: '#9CA3AF',
   },
@@ -576,6 +577,6 @@ const styles = StyleSheet.create({
   },
   retentionCell: {
     flex: 1,
-    fontSize: 12,
+    fontSize: ms(12),
   },
 });

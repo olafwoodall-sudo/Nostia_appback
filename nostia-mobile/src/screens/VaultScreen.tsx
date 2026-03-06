@@ -1,3 +1,4 @@
+import { ms } from '../utils/scale';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -377,31 +378,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   summaryTitle: {
-    fontSize: 18,
+    fontSize: ms(18),
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 16,
   },
   summaryLabel: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#D1FAE5',
     marginBottom: 8,
   },
   summaryAmount: {
-    fontSize: 36,
+    fontSize: ms(36),
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 8,
   },
   summaryCount: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#D1FAE5',
   },
   section: {
     padding: 16,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: ms(18),
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 12,
@@ -426,7 +427,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   balanceInitial: {
-    fontSize: 20,
+    fontSize: ms(20),
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
@@ -434,7 +435,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   balanceName: {
-    fontSize: 16,
+    fontSize: ms(16),
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 6,
@@ -444,16 +445,16 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   balanceLabel: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#9CA3AF',
   },
   paidAmount: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#10B981',
     fontWeight: '600',
   },
   owesAmount: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#EF4444',
     fontWeight: '600',
   },
@@ -461,7 +462,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   balanceAmount: {
-    fontSize: 18,
+    fontSize: ms(18),
     fontWeight: 'bold',
     marginBottom: 4,
   },
@@ -472,7 +473,7 @@ const styles = StyleSheet.create({
     color: '#EF4444',
   },
   balanceStatus: {
-    fontSize: 12,
+    fontSize: ms(12),
     color: '#9CA3AF',
   },
   expenseCard: {
@@ -500,25 +501,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   expenseDescription: {
-    fontSize: 16,
+    fontSize: ms(16),
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 4,
   },
   expenseDate: {
-    fontSize: 12,
+    fontSize: ms(12),
     color: '#9CA3AF',
   },
   expenseAmount: {
     alignItems: 'flex-end',
   },
   expenseTotalAmount: {
-    fontSize: 20,
+    fontSize: ms(20),
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
   expenseCurrency: {
-    fontSize: 12,
+    fontSize: ms(12),
     color: '#9CA3AF',
   },
   expenseMeta: {
@@ -528,7 +529,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   paidByText: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#9CA3AF',
   },
   paidByName: {
@@ -542,7 +543,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   categoryText: {
-    fontSize: 12,
+    fontSize: ms(12),
     color: '#D1D5DB',
     textTransform: 'capitalize',
   },
@@ -552,7 +553,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   splitsTitle: {
-    fontSize: 14,
+    fontSize: ms(14),
     fontWeight: 'bold',
     color: '#9CA3AF',
     marginBottom: 8,
@@ -564,11 +565,11 @@ const styles = StyleSheet.create({
   },
   splitName: {
     flex: 1,
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#D1D5DB',
   },
   splitAmount: {
-    fontSize: 14,
+    fontSize: ms(14),
     fontWeight: '600',
     color: '#F59E0B',
     marginRight: 12,
@@ -580,7 +581,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   markPaidText: {
-    fontSize: 12,
+    fontSize: ms(12),
     color: '#FFFFFF',
     fontWeight: '600',
   },
@@ -590,7 +591,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   paidText: {
-    fontSize: 12,
+    fontSize: ms(12),
     color: '#10B981',
     fontWeight: '600',
   },
@@ -600,13 +601,13 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyText: {
-    fontSize: 20,
+    fontSize: ms(20),
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginTop: 16,
   },
   emptySubtext: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#9CA3AF',
     marginTop: 8,
   },
@@ -626,13 +627,13 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   dueDescription: {
-    fontSize: 15,
+    fontSize: ms(15),
     fontWeight: '600',
     color: '#FFFFFF',
     marginBottom: 4,
   },
   duePaidBy: {
-    fontSize: 13,
+    fontSize: ms(13),
     color: '#9CA3AF',
   },
   dueRight: {
@@ -640,17 +641,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   dueFeeNote: {
-    fontSize: 11,
+    fontSize: ms(11),
     color: '#6B7280',
     marginTop: 3,
   },
   dueAmount: {
-    fontSize: 18,
+    fontSize: ms(18),
     fontWeight: 'bold',
     color: '#F59E0B',
   },
   dueAmountSub: {
-    fontSize: 11,
+    fontSize: ms(11),
     color: '#6B7280',
     marginTop: -4,
   },
@@ -668,7 +669,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   payCardText: {
-    fontSize: 12,
+    fontSize: ms(12),
     color: '#FFFFFF',
     fontWeight: '600',
   },

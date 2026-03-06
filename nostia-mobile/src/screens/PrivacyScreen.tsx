@@ -1,3 +1,4 @@
+import { ms } from '../utils/scale';
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -408,7 +409,7 @@ const styles = StyleSheet.create({
     borderColor: '#374151',
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: ms(16),
     fontWeight: '600',
     color: '#FFFFFF',
     marginBottom: 12,
@@ -420,11 +421,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   statusActive: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#10B981',
   },
   statusInactive: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#EF4444',
   },
   consentDetails: {
@@ -432,7 +433,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   detailText: {
-    fontSize: 12,
+    fontSize: ms(12),
     color: '#9CA3AF',
   },
   revokeButton: {
@@ -444,7 +445,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   revokeButtonText: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#FCA5A5',
     fontWeight: '600',
   },
@@ -457,12 +458,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   grantButtonText: {
-    fontSize: 14,
+    fontSize: ms(14),
     fontWeight: '600',
     color: '#FFFFFF',
   },
   policyVersion: {
-    fontSize: 12,
+    fontSize: ms(12),
     color: '#6B7280',
     marginBottom: 8,
   },
@@ -472,7 +473,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   policyToggleText: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#3B82F6',
     fontWeight: '500',
   },
@@ -487,12 +488,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   policySectionTitle: {
-    fontSize: 13,
+    fontSize: ms(13),
     fontWeight: '600',
     color: '#FFFFFF',
   },
   policySectionContent: {
-    fontSize: 12,
+    fontSize: ms(12),
     color: '#9CA3AF',
     lineHeight: 18,
   },
@@ -509,7 +510,7 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   exportButtonText: {
-    fontSize: 14,
+    fontSize: ms(14),
     fontWeight: '600',
     color: '#FFFFFF',
   },
@@ -525,7 +526,7 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   deleteButtonText: {
-    fontSize: 14,
+    fontSize: ms(14),
     fontWeight: '600',
     color: '#FCA5A5',
   },
@@ -547,34 +548,34 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   historyVersion: {
-    fontSize: 13,
+    fontSize: ms(13),
     color: '#D1D5DB',
     fontWeight: '600',
   },
   historyStatus: {
-    fontSize: 13,
+    fontSize: ms(13),
     fontWeight: '600',
   },
   historyDate: {
-    fontSize: 11,
+    fontSize: ms(11),
     color: '#6B7280',
   },
   profileHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   profileAvatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#3B82F6', justifyContent: 'center', alignItems: 'center' },
-  profileInitial: { fontSize: 22, fontWeight: 'bold', color: '#FFFFFF' },
-  profileName: { fontSize: 16, fontWeight: 'bold', color: '#FFFFFF' },
-  profileUsername: { fontSize: 13, color: '#9CA3AF', marginTop: 2 },
+  profileInitial: { fontSize: ms(22), fontWeight: 'bold', color: '#FFFFFF' },
+  profileName: { fontSize: ms(16), fontWeight: 'bold', color: '#FFFFFF' },
+  profileUsername: { fontSize: ms(13), color: '#9CA3AF', marginTop: 2 },
   editProfileButton: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: 'rgba(59,130,246,0.15)', borderRadius: 8 },
-  editProfileText: { fontSize: 13, color: '#3B82F6', fontWeight: '600' },
+  editProfileText: { fontSize: ms(13), color: '#3B82F6', fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
   modalBox: { backgroundColor: '#1F2937', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#FFFFFF', marginBottom: 20 },
-  inputLabel: { fontSize: 13, fontWeight: '600', color: '#D1D5DB', marginBottom: 6 },
-  profileInput: { backgroundColor: '#374151', borderRadius: 10, padding: 14, fontSize: 16, color: '#FFFFFF', borderWidth: 1, borderColor: '#4B5563', marginBottom: 16 },
+  modalTitle: { fontSize: ms(20), fontWeight: 'bold', color: '#FFFFFF', marginBottom: 20 },
+  inputLabel: { fontSize: ms(13), fontWeight: '600', color: '#D1D5DB', marginBottom: 6 },
+  profileInput: { backgroundColor: '#374151', borderRadius: 10, padding: 14, fontSize: ms(16), color: '#FFFFFF', borderWidth: 1, borderColor: '#4B5563', marginBottom: 16 },
   modalButtons: { flexDirection: 'row', gap: 12, marginTop: 4 },
   modalCancel: { flex: 1, backgroundColor: '#374151', borderRadius: 12, padding: 16, alignItems: 'center' },
-  modalCancelText: { fontSize: 16, fontWeight: '600', color: '#D1D5DB' },
+  modalCancelText: { fontSize: ms(16), fontWeight: '600', color: '#D1D5DB' },
   modalSaveContainer: { flex: 1, borderRadius: 12, overflow: 'hidden' },
   modalSave: { padding: 16, alignItems: 'center', justifyContent: 'center' },
-  modalSaveText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
+  modalSaveText: { fontSize: ms(16), fontWeight: '600', color: '#FFFFFF' },
 });

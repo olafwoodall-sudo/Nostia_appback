@@ -1,3 +1,4 @@
+import { ms } from '../utils/scale';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -511,7 +512,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     color: '#9CA3AF',
-    fontSize: 16,
+    fontSize: ms(16),
     fontWeight: '600',
   },
   activeTabText: {
@@ -539,7 +540,7 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     color: '#9CA3AF',
-    fontSize: 14,
+    fontSize: ms(14),
     fontWeight: '600',
   },
   selectedCategoryText: {
@@ -565,18 +566,18 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   adventureTitle: {
-    fontSize: 18,
+    fontSize: ms(18),
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 8,
   },
   adventureLocation: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#9CA3AF',
     marginBottom: 8,
   },
   adventureDescription: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#D1D5DB',
     lineHeight: 20,
     marginBottom: 12,
@@ -603,7 +604,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   addToTripText: {
-    fontSize: 12,
+    fontSize: ms(12),
     color: '#10B981',
     fontWeight: '600',
   },
@@ -617,7 +618,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#7C3AED',
   },
   tagText: {
-    fontSize: 12,
+    fontSize: ms(12),
     color: '#FFFFFF',
     fontWeight: '600',
     textTransform: 'capitalize',
@@ -644,7 +645,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   feedInitial: {
-    fontSize: 14,
+    fontSize: ms(14),
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
@@ -652,12 +653,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   feedName: {
-    fontSize: 14,
+    fontSize: ms(14),
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
   feedTime: {
-    fontSize: 12,
+    fontSize: ms(12),
     color: '#9CA3AF',
   },
   feedImage: {
@@ -673,7 +674,7 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   likeCount: {
-    fontSize: 14,
+    fontSize: ms(14),
     fontWeight: 'bold',
     color: '#FFFFFF',
     paddingHorizontal: 12,
@@ -686,18 +687,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   captionName: {
-    fontSize: 14,
+    fontSize: ms(14),
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginRight: 6,
   },
   captionText: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#D1D5DB',
     flex: 1,
   },
   commentCountText: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#9CA3AF',
     paddingHorizontal: 12,
     paddingBottom: 12,
@@ -710,7 +711,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   feedRelatedText: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#3B82F6',
     fontWeight: '600',
   },
@@ -733,7 +734,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptySubtext: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#9CA3AF',
     marginTop: 8,
   },
@@ -743,7 +744,7 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyText: {
-    fontSize: 20,
+    fontSize: ms(20),
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginTop: 16,
@@ -778,18 +779,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   profileAvatarText: {
-    fontSize: 32,
+    fontSize: ms(32),
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
   profileName: {
-    fontSize: 22,
+    fontSize: ms(22),
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 4,
   },
   profileUsername: {
-    fontSize: 15,
+    fontSize: ms(15),
     color: '#9CA3AF',
     marginBottom: 12,
   },
@@ -800,11 +801,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   profileStatusText: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#9CA3AF',
   },
   profileJoined: {
-    fontSize: 13,
+    fontSize: ms(13),
     color: '#6B7280',
     marginTop: 8,
   },

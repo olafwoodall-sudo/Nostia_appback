@@ -1,3 +1,4 @@
+import { ms } from '../utils/scale';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -236,7 +237,7 @@ const styles = StyleSheet.create({
     marginVertical: 16,
   },
   dateText: {
-    fontSize: 12,
+    fontSize: ms(12),
     color: '#6B7280',
     backgroundColor: '#1F2937',
     paddingHorizontal: 12,
@@ -264,7 +265,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   avatarText: {
-    fontSize: 12,
+    fontSize: ms(12),
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
@@ -283,7 +284,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 4,
   },
   messageText: {
-    fontSize: 16,
+    fontSize: ms(16),
     lineHeight: 22,
   },
   messageTextMe: {
@@ -293,7 +294,7 @@ const styles = StyleSheet.create({
     color: '#F3F4F6',
   },
   messageTime: {
-    fontSize: 10,
+    fontSize: ms(10),
     marginTop: 4,
   },
   messageTimeMe: {
@@ -310,13 +311,13 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: ms(18),
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginTop: 16,
   },
   emptySubtext: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#9CA3AF',
     marginTop: 8,
     textAlign: 'center',
@@ -336,7 +337,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: ms(16),
     maxHeight: 120,
     marginRight: 12,
   },

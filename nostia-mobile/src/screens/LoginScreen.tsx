@@ -1,3 +1,4 @@
+import { ms } from '../utils/scale';
 import React, { useState } from 'react';
 import {
   View,
@@ -159,13 +160,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 32,
+    fontSize: ms(32),
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginTop: 16,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: ms(16),
     color: '#E0E7FF',
     marginTop: 8,
   },
@@ -177,7 +178,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   label: {
-    fontSize: 14,
+    fontSize: ms(14),
     fontWeight: '600',
     color: '#D1D5DB',
     marginBottom: 8,
@@ -186,7 +187,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1F2937',
     borderRadius: 12,
     padding: 16,
-    fontSize: 16,
+    fontSize: ms(16),
     color: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#374151',
@@ -204,7 +205,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   loginButtonText: {
-    fontSize: 18,
+    fontSize: ms(18),
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
@@ -219,7 +220,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#374151',
   },
   dividerText: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#6B7280',
     marginHorizontal: 16,
   },
@@ -227,7 +228,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   signupLinkText: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: '#9CA3AF',
   },
   signupLinkBold: {
