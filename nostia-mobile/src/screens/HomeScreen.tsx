@@ -226,21 +226,21 @@ export default function HomeScreen() {
 
       {/* Quick Stats */}
       <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
+        <TouchableOpacity style={styles.statCard} onPress={() => (navigation as any).navigate('TripsTab')} activeOpacity={0.7}>
           <Ionicons name="airplane" size={28} color="#3B82F6" />
           <Text style={styles.statNumber}>{trips.length}</Text>
           <Text style={styles.statLabel}>Trips</Text>
-        </View>
-        <View style={styles.statCard}>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.statCard} onPress={() => (navigation as any).navigate('FriendsTab')} activeOpacity={0.7}>
           <Ionicons name="people" size={28} color="#10B981" />
           <Text style={styles.statNumber}>{friends.length}</Text>
           <Text style={styles.statLabel}>Friends</Text>
-        </View>
-        <View style={styles.statCard}>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.statCard} onPress={() => (navigation as any).navigate('DiscoverTab')} activeOpacity={0.7}>
           <Ionicons name="calendar" size={28} color="#F59E0B" />
           <Text style={styles.statNumber}>{events.length}</Text>
           <Text style={styles.statLabel}>Events</Text>
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* Upcoming Trips Preview */}
@@ -253,7 +253,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
           {trips.slice(0, 2).map((trip: any) => (
-            <View key={trip.id} style={styles.tripPreviewCard}>
+            <TouchableOpacity key={trip.id} style={styles.tripPreviewCard} onPress={() => (navigation as any).navigate('TripsTab')} activeOpacity={0.7}>
               <View style={styles.tripPreviewHeader}>
                 <View>
                   <Text style={styles.tripPreviewTitle}>{trip.title}</Text>
@@ -277,7 +277,7 @@ export default function HomeScreen() {
                   day: 'numeric',
                 })}
               </Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       )}

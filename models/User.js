@@ -52,7 +52,7 @@ class User {
   }
 
   static update(id, updates) {
-    const allowedFields = ['name', 'email', 'homeStatus', 'latitude', 'longitude', 'role'];
+    const allowedFields = ['name', 'username', 'email', 'homeStatus', 'latitude', 'longitude', 'role'];
     const fields = Object.keys(updates).filter(key => allowedFields.includes(key));
 
     if (fields.length === 0) return this.findById(id);

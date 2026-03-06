@@ -8,12 +8,18 @@ import {
   ActivityIndicator,
   Alert,
   Share,
+  TextInput,
+  Modal,
+  TouchableWithoutFeedback,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SecureStore from 'expo-secure-store';
-import { consentAPI, privacyAPI } from '../services/api';
+import { consentAPI, privacyAPI, authAPI } from '../services/api';
 
 export default function PrivacyScreen() {
   const navigation = useNavigation();
@@ -22,6 +28,11 @@ export default function PrivacyScreen() {
   const [consentHistory, setConsentHistory] = useState<any[]>([]);
   const [policy, setPolicy] = useState<any>(null);
   const [showPolicy, setShowPolicy] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editUsername, setEditUsername] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -30,18 +41,44 @@ export default function PrivacyScreen() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [status, history, policyData] = await Promise.all([
+      const [status, history, policyData, userData] = await Promise.all([
         consentAPI.getStatus().catch(() => null),
         consentAPI.getHistory().catch(() => []),
         privacyAPI.getPolicy().catch(() => null),
+        authAPI.getMe().catch(() => null),
       ]);
       setConsentStatus(status);
       setConsentHistory(history);
       setPolicy(policyData);
+      if (userData) setUser(userData);
     } catch (err) {
       console.error('Failed to load privacy data', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openEditProfile = () => {
+    setEditName(user?.name || '');
+    setEditUsername(user?.username || '');
+    setShowEditProfile(true);
+  };
+
+  const handleSaveProfile = async () => {
+    if (!editName.trim()) {
+      Alert.alert('Error', 'Name cannot be empty');
+      return;
+    }
+    setSavingProfile(true);
+    try {
+      const updated = await authAPI.updateMe({ name: editName.trim(), username: editUsername.trim() });
+      setUser(updated);
+      setShowEditProfile(false);
+      Alert.alert('Saved', 'Profile updated successfully');
+    } catch (err: any) {
+      Alert.alert('Error', err.response?.data?.error || 'Failed to save profile');
+    } finally {
+      setSavingProfile(false);
     }
   };
 
@@ -139,7 +176,25 @@ export default function PrivacyScreen() {
   }
 
   return (
+    <>
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      {/* Profile Card */}
+      <View style={styles.card}>
+        <View style={styles.profileHeader}>
+          <View style={styles.profileAvatar}>
+            <Text style={styles.profileInitial}>{user?.name?.charAt(0)?.toUpperCase() || '?'}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.profileName}>{user?.name || '—'}</Text>
+            <Text style={styles.profileUsername}>@{user?.username || '—'}</Text>
+          </View>
+          <TouchableOpacity style={styles.editProfileButton} onPress={openEditProfile}>
+            <Ionicons name="pencil-outline" size={18} color="#3B82F6" />
+            <Text style={styles.editProfileText}>Edit</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       {/* Consent Status */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Consent Status</Text>
@@ -283,6 +338,49 @@ export default function PrivacyScreen() {
         </View>
       )}
     </ScrollView>
+
+    {/* Edit Profile Modal */}
+    <Modal visible={showEditProfile} animationType="slide" transparent>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalBox}>
+              <Text style={styles.modalTitle}>Edit Profile</Text>
+              <Text style={styles.inputLabel}>Display Name</Text>
+              <TextInput
+                style={styles.profileInput}
+                value={editName}
+                onChangeText={setEditName}
+                placeholder="Your name"
+                placeholderTextColor="#6B7280"
+                autoCapitalize="words"
+              />
+              <Text style={styles.inputLabel}>Username</Text>
+              <TextInput
+                style={styles.profileInput}
+                value={editUsername}
+                onChangeText={setEditUsername}
+                placeholder="username"
+                placeholderTextColor="#6B7280"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity style={styles.modalCancel} onPress={() => setShowEditProfile(false)}>
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.modalSaveContainer} onPress={handleSaveProfile} disabled={savingProfile} activeOpacity={0.8}>
+                  <LinearGradient colors={['#3B82F6', '#8B5CF6']} style={styles.modalSave} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                    {savingProfile ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.modalSaveText}>Save</Text>}
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </Modal>
+    </>
   );
 }
 
@@ -461,4 +559,22 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#6B7280',
   },
+  profileHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  profileAvatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#3B82F6', justifyContent: 'center', alignItems: 'center' },
+  profileInitial: { fontSize: 22, fontWeight: 'bold', color: '#FFFFFF' },
+  profileName: { fontSize: 16, fontWeight: 'bold', color: '#FFFFFF' },
+  profileUsername: { fontSize: 13, color: '#9CA3AF', marginTop: 2 },
+  editProfileButton: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: 'rgba(59,130,246,0.15)', borderRadius: 8 },
+  editProfileText: { fontSize: 13, color: '#3B82F6', fontWeight: '600' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+  modalBox: { backgroundColor: '#1F2937', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#FFFFFF', marginBottom: 20 },
+  inputLabel: { fontSize: 13, fontWeight: '600', color: '#D1D5DB', marginBottom: 6 },
+  profileInput: { backgroundColor: '#374151', borderRadius: 10, padding: 14, fontSize: 16, color: '#FFFFFF', borderWidth: 1, borderColor: '#4B5563', marginBottom: 16 },
+  modalButtons: { flexDirection: 'row', gap: 12, marginTop: 4 },
+  modalCancel: { flex: 1, backgroundColor: '#374151', borderRadius: 12, padding: 16, alignItems: 'center' },
+  modalCancelText: { fontSize: 16, fontWeight: '600', color: '#D1D5DB' },
+  modalSaveContainer: { flex: 1, borderRadius: 12, overflow: 'hidden' },
+  modalSave: { padding: 16, alignItems: 'center', justifyContent: 'center' },
+  modalSaveText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
 });

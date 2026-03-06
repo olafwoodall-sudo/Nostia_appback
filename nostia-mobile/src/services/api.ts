@@ -92,6 +92,11 @@ export const authAPI = {
     const response = await api.put('/users/me', updates);
     return response.data;
   },
+
+  getUserById: async (id: number) => {
+    const response = await api.get(`/users/${id}`);
+    return response.data;
+  },
 };
 
 // ===== Trips API =====

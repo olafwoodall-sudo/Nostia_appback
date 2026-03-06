@@ -10,6 +10,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -32,21 +34,14 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
-      const response = await authAPI.login(trimmedUsername, password);
-
-      Alert.alert('Welcome Back!', `Hello, ${response.user?.name || username}!`, [
-        { text: 'OK', onPress: () => (navigation as any).replace('Main') },
-      ]);
+      await authAPI.login(trimmedUsername, password);
+      (navigation as any).replace('Main');
     } catch (error: any) {
-      console.log('Login error:', error.response?.data || error.message);
-
-      if (error.response?.status === 429) {
-        // Already handled by interceptor
-      } else if (error.response?.status === 401) {
+      if (error.response?.status === 401) {
         Alert.alert('Login Failed', 'Invalid username or password');
       } else if (error.response?.status === 404) {
         Alert.alert('Login Failed', 'User not found');
-      } else {
+      } else if (error.response?.status !== 429) {
         Alert.alert('Login Failed', error.response?.data?.error || 'An error occurred. Please try again.');
       }
     } finally {
@@ -59,6 +54,7 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -144,6 +140,7 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 }

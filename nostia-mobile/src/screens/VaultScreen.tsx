@@ -142,6 +142,28 @@ export default function VaultScreen({ route }: any) {
     </View>
   );
 
+  const handleDeleteEntry = (entry: any) => {
+    Alert.alert(
+      'Delete Expense',
+      `Delete "${entry.description}"? This will remove all splits for this expense.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await vaultAPI.deleteEntry(entry.id);
+              loadVaultData();
+            } catch (error: any) {
+              Alert.alert('Error', error.response?.data?.error || 'Failed to delete expense');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderExpenseCard = ({ item }: { item: any }) => (
     <View style={styles.expenseCard}>
       <View style={styles.expenseHeader}>
@@ -161,6 +183,9 @@ export default function VaultScreen({ route }: any) {
         <View style={styles.expenseAmount}>
           <Text style={styles.expenseTotalAmount}>${item.amount?.toFixed(2)}</Text>
           <Text style={styles.expenseCurrency}>{item.currency}</Text>
+          <TouchableOpacity onPress={() => handleDeleteEntry(item)} style={{ marginTop: 4 }}>
+            <Ionicons name="trash-outline" size={16} color="#EF4444" />
+          </TouchableOpacity>
         </View>
       </View>
 

@@ -10,10 +10,11 @@ import {
   Alert,
   ScrollView,
   Image,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { adventuresAPI, feedAPI } from '../services/api';
+import { adventuresAPI, feedAPI, tripsAPI, authAPI } from '../services/api';
 import CreatePostModal from '../components/CreatePostModal';
 import CommentsModal from '../components/CommentsModal';
 
@@ -27,6 +28,10 @@ export default function AdventuresScreen() {
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
+  const [trips, setTrips] = useState<any[]>([]);
+  const [selectedProfile, setSelectedProfile] = useState<any>(null);
+  const [showProfile, setShowProfile] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(false);
 
   const categories = [
     { id: 'all', label: 'All', icon: 'grid-outline' },
@@ -43,12 +48,14 @@ export default function AdventuresScreen() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [adventuresData, feedData] = await Promise.all([
+      const [adventuresData, feedData, tripsData] = await Promise.all([
         adventuresAPI.getAll(),
         feedAPI.getUserFeed(20),
+        tripsAPI.getAll().catch(() => []),
       ]);
       setAdventures(adventuresData);
       setFeed(feedData);
+      setTrips(tripsData);
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.error || 'Failed to load data');
     } finally {
@@ -108,6 +115,48 @@ export default function AdventuresScreen() {
     loadData();
   };
 
+  const handleViewProfile = async (userId: number) => {
+    if (!userId) return;
+    setLoadingProfile(true);
+    setShowProfile(true);
+    try {
+      const user = await authAPI.getUserById(userId);
+      setSelectedProfile(user);
+    } catch {
+      setShowProfile(false);
+      Alert.alert('Error', 'Could not load profile');
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
+  const handleAddToTrip = (adventure: any) => {
+    if (trips.length === 0) {
+      Alert.alert('No Trips', 'Create a trip first before adding adventures to it.');
+      return;
+    }
+    Alert.alert(
+      'Add to Trip',
+      `Add "${adventure.title}" to which trip?`,
+      [
+        ...trips.map((trip: any) => ({
+          text: trip.title,
+          onPress: async () => {
+            try {
+              const current = trip.description || '';
+              const append = `\n• ${adventure.title} (${adventure.location || adventure.category || 'adventure'})`;
+              await tripsAPI.update(trip.id, { description: current + append });
+              Alert.alert('Added!', `"${adventure.title}" added to ${trip.title}`);
+            } catch {
+              Alert.alert('Error', 'Failed to add adventure to trip');
+            }
+          },
+        })),
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -143,17 +192,23 @@ export default function AdventuresScreen() {
             {item.description}
           </Text>
         )}
-        <View style={styles.adventureTags}>
-          {item.category && (
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>{item.category}</Text>
-            </View>
-          )}
-          {item.difficulty && (
-            <View style={[styles.tag, styles.difficultyTag]}>
-              <Text style={styles.tagText}>{item.difficulty}</Text>
-            </View>
-          )}
+        <View style={styles.adventureTagRow}>
+          <View style={styles.adventureTags}>
+            {item.category && (
+              <View style={styles.tag}>
+                <Text style={styles.tagText}>{item.category}</Text>
+              </View>
+            )}
+            {item.difficulty && (
+              <View style={[styles.tag, styles.difficultyTag]}>
+                <Text style={styles.tagText}>{item.difficulty}</Text>
+              </View>
+            )}
+          </View>
+          <TouchableOpacity style={styles.addToTripButton} onPress={() => handleAddToTrip(item)}>
+            <Ionicons name="add-circle-outline" size={16} color="#10B981" />
+            <Text style={styles.addToTripText}>Add to Trip</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -162,7 +217,7 @@ export default function AdventuresScreen() {
   const renderFeedPost = ({ item }: { item: any }) => (
     <View style={styles.feedCard}>
       {/* Header */}
-      <View style={styles.feedHeader}>
+      <TouchableOpacity style={styles.feedHeader} onPress={() => handleViewProfile(item.userId)} activeOpacity={0.7}>
         <View style={styles.feedAvatar}>
           <Text style={styles.feedInitial}>{item.name?.charAt(0) || 'U'}</Text>
         </View>
@@ -170,7 +225,7 @@ export default function AdventuresScreen() {
           <Text style={styles.feedName}>{item.name}</Text>
           <Text style={styles.feedTime}>{formatTime(item.createdAt)}</Text>
         </View>
-      </View>
+      </TouchableOpacity>
 
       {/* Image */}
       {item.imageData && (
@@ -388,6 +443,39 @@ export default function AdventuresScreen() {
         }}
         onCommentAdded={handleCommentAdded}
       />
+
+      {/* Profile Modal */}
+      <Modal visible={showProfile} animationType="slide" transparent onRequestClose={() => { setShowProfile(false); setSelectedProfile(null); }}>
+        <View style={styles.profileOverlay}>
+          <View style={styles.profileSheet}>
+            <TouchableOpacity style={styles.profileClose} onPress={() => { setShowProfile(false); setSelectedProfile(null); }}>
+              <Ionicons name="close" size={28} color="#FFFFFF" />
+            </TouchableOpacity>
+            {loadingProfile ? (
+              <ActivityIndicator size="large" color="#3B82F6" style={{ marginTop: 40 }} />
+            ) : selectedProfile ? (
+              <>
+                <View style={styles.profileAvatarLarge}>
+                  <Text style={styles.profileAvatarText}>{selectedProfile.name?.charAt(0) || 'U'}</Text>
+                </View>
+                <Text style={styles.profileName}>{selectedProfile.name}</Text>
+                {selectedProfile.username && (
+                  <Text style={styles.profileUsername}>@{selectedProfile.username}</Text>
+                )}
+                {selectedProfile.homeStatus && (
+                  <View style={styles.profileStatusRow}>
+                    <Ionicons name="home-outline" size={16} color="#9CA3AF" />
+                    <Text style={styles.profileStatusText}>{selectedProfile.homeStatus}</Text>
+                  </View>
+                )}
+                <Text style={styles.profileJoined}>
+                  Joined {new Date(selectedProfile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                </Text>
+              </>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -493,9 +581,31 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 12,
   },
+  adventureTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
   adventureTags: {
     flexDirection: 'row',
     gap: 8,
+    flex: 1,
+  },
+  addToTripButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(16,185,129,0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+  },
+  addToTripText: {
+    fontSize: 12,
+    color: '#10B981',
+    fontWeight: '600',
   },
   tag: {
     backgroundColor: '#374151',
@@ -637,5 +747,65 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginTop: 16,
+  },
+  profileOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-end',
+  },
+  profileSheet: {
+    backgroundColor: '#1F2937',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    paddingBottom: 40,
+    minHeight: 280,
+  },
+  profileClose: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+  },
+  profileAvatarLarge: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#3B82F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  profileAvatarText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  profileName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  profileUsername: {
+    fontSize: 15,
+    color: '#9CA3AF',
+    marginBottom: 12,
+  },
+  profileStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  profileStatusText: {
+    fontSize: 14,
+    color: '#9CA3AF',
+  },
+  profileJoined: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 8,
   },
 });

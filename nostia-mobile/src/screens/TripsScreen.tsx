@@ -8,6 +8,13 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  Modal,
+  TextInput,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +31,7 @@ export default function TripsScreen() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
   const [selectedTripForAI, setSelectedTripForAI] = useState<any>(null);
+  const [editingTrip, setEditingTrip] = useState<any>(null);
 
   useEffect(() => {
     loadTrips();
@@ -130,6 +138,9 @@ export default function TripsScreen() {
             <Ionicons name="sparkles" size={16} color="#A78BFA" />
             <Text style={styles.aiButtonText}>AI Plan</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.editTripButton} onPress={() => setEditingTrip(item)}>
+            <Ionicons name="pencil-outline" size={15} color="#9CA3AF" />
+          </TouchableOpacity>
           <View style={styles.statItem}>
             <Ionicons name="wallet-outline" size={18} color="#10B981" />
             <Text style={styles.vaultText}>Vault</Text>
@@ -191,6 +202,13 @@ export default function TripsScreen() {
         onTripCreated={handleTripCreated}
       />
 
+      <EditTripModal
+        visible={!!editingTrip}
+        trip={editingTrip}
+        onClose={() => setEditingTrip(null)}
+        onSaved={() => { setEditingTrip(null); loadTrips(); }}
+      />
+
       <AIChatModal
         visible={showAIChat}
         onClose={() => {
@@ -204,6 +222,83 @@ export default function TripsScreen() {
         }}
       />
     </View>
+  );
+}
+
+function EditTripModal({ visible, trip, onClose, onSaved }: { visible: boolean; trip: any; onClose: () => void; onSaved: () => void }) {
+  const [title, setTitle] = useState('');
+  const [destination, setDestination] = useState('');
+  const [description, setDescription] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (trip) {
+      setTitle(trip.title || '');
+      setDestination(trip.destination || '');
+      setDescription(trip.description || '');
+      setStartDate(trip.startDate ? trip.startDate.slice(0, 10) : '');
+      setEndDate(trip.endDate ? trip.endDate.slice(0, 10) : '');
+    }
+  }, [trip]);
+
+  const handleSave = async () => {
+    if (!title || !destination) {
+      Alert.alert('Missing Info', 'Title and destination are required');
+      return;
+    }
+    setSaving(true);
+    try {
+      await tripsAPI.update(trip.id, { title, destination, description, startDate, endDate });
+      onSaved();
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.error || 'Failed to update trip');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' }}>
+            <View style={{ backgroundColor: '#1F2937', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '90%', paddingBottom: 20 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#374151' }}>
+                <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#FFFFFF' }}>Edit Trip</Text>
+                <TouchableOpacity onPress={onClose}><Ionicons name="close" size={28} color="#FFFFFF" /></TouchableOpacity>
+              </View>
+              <ScrollView style={{ padding: 20 }} showsVerticalScrollIndicator={false}>
+                {[
+                  { label: 'Title *', value: title, setter: setTitle, placeholder: 'Trip title' },
+                  { label: 'Destination *', value: destination, setter: setDestination, placeholder: 'Destination' },
+                  { label: 'Start Date', value: startDate, setter: setStartDate, placeholder: 'YYYY-MM-DD' },
+                  { label: 'End Date', value: endDate, setter: setEndDate, placeholder: 'YYYY-MM-DD' },
+                ].map(({ label, value, setter, placeholder }) => (
+                  <View key={label} style={{ marginBottom: 16 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#D1D5DB', marginBottom: 6 }}>{label}</Text>
+                    <TextInput style={{ backgroundColor: '#374151', borderRadius: 8, padding: 14, fontSize: 15, color: '#FFFFFF', borderWidth: 1, borderColor: '#4B5563' }} value={value} onChangeText={setter} placeholder={placeholder} placeholderTextColor="#6B7280" />
+                  </View>
+                ))}
+                <View style={{ marginBottom: 16 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#D1D5DB', marginBottom: 6 }}>Description</Text>
+                  <TextInput style={{ backgroundColor: '#374151', borderRadius: 8, padding: 14, fontSize: 15, color: '#FFFFFF', borderWidth: 1, borderColor: '#4B5563', minHeight: 80, textAlignVertical: 'top' }} value={description} onChangeText={setDescription} placeholder="Trip notes..." placeholderTextColor="#6B7280" multiline />
+                </View>
+              </ScrollView>
+              <View style={{ flexDirection: 'row', paddingHorizontal: 20, gap: 12 }}>
+                <TouchableOpacity style={{ flex: 1, backgroundColor: '#374151', borderRadius: 12, padding: 16, alignItems: 'center' }} onPress={onClose} disabled={saving}>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#D1D5DB' }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={{ flex: 1, backgroundColor: '#3B82F6', borderRadius: 12, padding: 16, alignItems: 'center' }} onPress={handleSave} disabled={saving}>
+                  {saving ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={{ fontSize: 16, fontWeight: '600', color: '#FFFFFF' }}>Save Changes</Text>}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 }
 
@@ -293,6 +388,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  editTripButton: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: '#374151',
   },
   aiButton: {
     flexDirection: 'row',

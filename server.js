@@ -310,6 +310,18 @@ app.get('/api/users/me', authenticateToken, (req, res) => {
   }
 });
 
+// Get public profile by user ID
+app.get('/api/users/:id', authenticateToken, (req, res) => {
+  try {
+    const user = User.findById(req.params.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const { password, ...safeUser } = user;
+    res.json(safeUser);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Update current user
 app.put('/api/users/me', authenticateToken, (req, res) => {
   try {
