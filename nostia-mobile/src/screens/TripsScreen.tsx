@@ -19,9 +19,8 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { tripsAPI, analyticsAPI } from '../services/api';
+import { tripsAPI } from '../services/api';
 import CreateTripModal from '../components/CreateTripModal';
-import AIChatModal from '../components/AIChatModal';
 
 export default function TripsScreen() {
   const navigation = useNavigation();
@@ -29,8 +28,6 @@ export default function TripsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showAIChat, setShowAIChat] = useState(false);
-  const [selectedTripForAI, setSelectedTripForAI] = useState<any>(null);
   const [editingTrip, setEditingTrip] = useState<any>(null);
 
   useEffect(() => {
@@ -58,19 +55,9 @@ export default function TripsScreen() {
   const handleTripCreated = () => {
     setShowCreateModal(false);
     loadTrips();
-    analyticsAPI.track({
-      eventType: 'action',
-      eventName: 'trip_created',
-    }).catch(() => {});
   };
 
   const handleViewVault = (trip: any) => {
-    analyticsAPI.track({
-      eventType: 'action',
-      eventName: 'vault_opened',
-      metadata: JSON.stringify({ tripId: trip.id }),
-    }).catch(() => {});
-    // Navigate to VaultScreen with trip ID
     (navigation as any).navigate('Vault', { tripId: trip.id, tripTitle: trip.title });
   };
 
@@ -128,16 +115,6 @@ export default function TripsScreen() {
           <Text style={styles.statText}>{item.participants?.length || 0} people</Text>
         </View>
         <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={styles.aiButton}
-            onPress={() => {
-              setSelectedTripForAI(item);
-              setShowAIChat(true);
-            }}
-          >
-            <Ionicons name="sparkles" size={16} color="#A78BFA" />
-            <Text style={styles.aiButtonText}>AI Plan</Text>
-          </TouchableOpacity>
           <TouchableOpacity style={styles.editTripButton} onPress={() => setEditingTrip(item)}>
             <Ionicons name="pencil-outline" size={15} color="#9CA3AF" />
           </TouchableOpacity>
@@ -209,18 +186,6 @@ export default function TripsScreen() {
         onSaved={() => { setEditingTrip(null); loadTrips(); }}
       />
 
-      <AIChatModal
-        visible={showAIChat}
-        onClose={() => {
-          setShowAIChat(false);
-          setSelectedTripForAI(null);
-        }}
-        tripContext={selectedTripForAI}
-        onGenerateItinerary={(itinerary) => {
-          console.log('Generated itinerary:', itinerary);
-          Alert.alert('Success', 'Itinerary generated! Check the AI chat for details.');
-        }}
-      />
     </View>
   );
 }
@@ -393,20 +358,6 @@ const styles = StyleSheet.create({
     padding: 6,
     borderRadius: 8,
     backgroundColor: '#374151',
-  },
-  aiButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(139, 92, 246, 0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  aiButtonText: {
-    fontSize: 12,
-    color: '#A78BFA',
-    fontWeight: '600',
   },
   emptyContainer: {
     alignItems: 'center',

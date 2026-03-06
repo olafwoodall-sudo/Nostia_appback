@@ -423,32 +423,6 @@ export const consentAPI = {
 
 // ===== Analytics API =====
 export const analyticsAPI = {
-  track: async (eventData: {
-    eventType: string;
-    eventName: string;
-    latitude?: number;
-    longitude?: number;
-    metadata?: string;
-  }) => {
-    const response = await api.post('/analytics/track', eventData);
-    return response.data;
-  },
-
-  trackBatch: async (events: any[]) => {
-    const response = await api.post('/analytics/track-batch', { events });
-    return response.data;
-  },
-
-  startSession: async (platform: string = 'mobile') => {
-    const response = await api.post('/analytics/session/start', { platform });
-    return response.data;
-  },
-
-  endSession: async (sessionId: number) => {
-    const response = await api.post('/analytics/session/end', { sessionId });
-    return response.data;
-  },
-
   getDashboard: async (params: { startDate: string; endDate: string }) => {
     const response = await api.get('/analytics/dashboard', { params });
     return response.data;
