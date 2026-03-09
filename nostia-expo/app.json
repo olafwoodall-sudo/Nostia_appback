@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "nostia-expo",
+    "slug": "nostia-expo",
+    "version": "1.0.1",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "PLACEHOLDER_IOS_BUNDLE_ID",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Nostia uses your location to show nearby events and share your position with friends."
+      }
+    },
+    "android": {
+      "package": "com.nostia.app",
+      "versionCode": 2,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "PLACEHOLDER_GOOGLE_MAPS_API_KEY"
+        }
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-font",
+      "expo-location",
+      [
+        "react-native-maps",
+        {
+          "googleMapsApiKey": "PLACEHOLDER_GOOGLE_MAPS_API_KEY"
+        }
+      ]
+    ]
+  }
+}
