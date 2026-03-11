@@ -1,6 +1,5 @@
 package com.nostia.app.ui.screens
 
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,8 +50,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.nostia.app.constants.AppConstants
 import com.nostia.app.data.api.ApiService
+import com.stripe.android.paymentsheet.PaymentSheet
+import com.stripe.android.paymentsheet.PaymentSheetResult
+import com.stripe.android.paymentsheet.rememberPaymentSheet
 import com.nostia.app.data.api.models.CreateVaultEntryRequest
 import com.nostia.app.data.api.models.SplitRequest
 import com.nostia.app.data.api.models.VaultBalance
@@ -77,7 +78,6 @@ fun VaultScreen(
     onNavigateBack: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
 
     var totalExpenses by remember { mutableStateOf(0.0) }
     var entries by remember { mutableStateOf<List<VaultEntry>>(emptyList()) }
@@ -86,6 +86,8 @@ fun VaultScreen(
     var isLoading by remember { mutableStateOf(true) }
     var showAddExpense by remember { mutableStateOf(false) }
     var currentUserId by remember { mutableStateOf<Int?>(null) }
+    var paymentStatusMessage by remember { mutableStateOf<String?>(null) }
+    var isPaymentLoading by remember { mutableStateOf(false) }
 
     fun loadVault() {
         scope.launch {
@@ -103,6 +105,20 @@ fun VaultScreen(
             } catch (_: Exception) {
             } finally {
                 isLoading = false
+            }
+        }
+    }
+
+    val paymentSheet = rememberPaymentSheet { result ->
+        isPaymentLoading = false
+        when (result) {
+            is PaymentSheetResult.Completed -> {
+                paymentStatusMessage = "Payment successful!"
+                loadVault()
+            }
+            is PaymentSheetResult.Canceled -> { /* no-op */ }
+            is PaymentSheetResult.Failed -> {
+                paymentStatusMessage = result.error.localizedMessage ?: "Payment failed"
             }
         }
     }
@@ -197,12 +213,39 @@ fun VaultScreen(
                         items(unpaidSplits) { split ->
                             UnpaidSplitCard(
                                 split = split,
+                                isPaymentLoading = isPaymentLoading,
                                 onPayClicked = {
-                                    Toast.makeText(
-                                        context,
-                                        "Stripe payment — configure ${AppConstants.STRIPE_PUBLISHABLE_KEY}",
-                                        Toast.LENGTH_LONG
-                                    ).show()
+                                    scope.launch {
+                                        isPaymentLoading = true
+                                        paymentStatusMessage = null
+                                        try {
+                                            val response = apiService.createPaymentIntent(split.id)
+                                            if (response.isSuccessful) {
+                                                val clientSecret = response.body()?.clientSecret
+                                                val charged = response.body()?.chargedAmount
+                                                if (clientSecret != null) {
+                                                    val config = PaymentSheet.Configuration(
+                                                        merchantDisplayName = "Nostia",
+                                                        appearance = PaymentSheet.Appearance(
+                                                            colorsLight = PaymentSheet.Colors(
+                                                                primary = android.graphics.Color.parseColor("#10B981")
+                                                            )
+                                                        )
+                                                    )
+                                                    paymentSheet.presentWithPaymentIntent(clientSecret, config)
+                                                } else {
+                                                    isPaymentLoading = false
+                                                    paymentStatusMessage = "Failed to initiate payment"
+                                                }
+                                            } else {
+                                                isPaymentLoading = false
+                                                paymentStatusMessage = "Could not create payment (${response.code()})"
+                                            }
+                                        } catch (e: Exception) {
+                                            isPaymentLoading = false
+                                            paymentStatusMessage = e.message ?: "Payment error"
+                                        }
+                                    }
                                 }
                             )
                         }
@@ -231,6 +274,30 @@ fun VaultScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text("No expenses yet. Tap + to add one.", color = NostiaTextSecondary)
+                            }
+                        }
+                    }
+
+                    // Payment status message
+                    if (paymentStatusMessage != null) {
+                        item {
+                            val isSuccess = paymentStatusMessage!!.startsWith("Payment successful")
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isSuccess)
+                                        androidx.compose.ui.graphics.Color(0xFF10B981)
+                                    else
+                                        androidx.compose.ui.graphics.Color(0xFFEF4444)
+                                ),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Text(
+                                    text = paymentStatusMessage!!,
+                                    color = NostiaTextPrimary,
+                                    modifier = Modifier.padding(14.dp),
+                                    fontSize = 14.sp
+                                )
                             }
                         }
                     }
@@ -265,7 +332,12 @@ private fun SectionHeader(text: String) {
 }
 
 @Composable
-private fun UnpaidSplitCard(split: VaultSplit, onPayClicked: () -> Unit) {
+private fun UnpaidSplitCard(
+    split: VaultSplit,
+    isPaymentLoading: Boolean,
+    onPayClicked: () -> Unit
+) {
+    val chargedAmount = Math.ceil(((split.amount + 0.30) / (1 - 0.029)) * 100) / 100
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = NostiaSurface),
@@ -287,13 +359,23 @@ private fun UnpaidSplitCard(split: VaultSplit, onPayClicked: () -> Unit) {
                     fontSize = 13.sp,
                     color = androidx.compose.ui.graphics.Color(0xFFEF4444)
                 )
+                Text(
+                    text = String.format(Locale.US, "Charged $%.2f (incl. fee)", chargedAmount),
+                    fontSize = 11.sp,
+                    color = NostiaTextSecondary
+                )
             }
             Button(
                 onClick = onPayClicked,
                 colors = ButtonDefaults.buttonColors(containerColor = NostiaPrimary),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                enabled = !isPaymentLoading
             ) {
-                Text("Pay", color = NostiaTextPrimary, fontSize = 13.sp)
+                if (isPaymentLoading) {
+                    CircularProgressIndicator(color = NostiaTextPrimary, strokeWidth = 2.dp, modifier = Modifier.size(16.dp))
+                } else {
+                    Text("Pay", color = NostiaTextPrimary, fontSize = 13.sp)
+                }
             }
         }
     }

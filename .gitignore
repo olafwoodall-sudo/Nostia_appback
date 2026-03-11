@@ -113,6 +113,9 @@ ios/build/
 android/.gradle/
 android/build/
 android/local.properties
+nostia-android/local.properties
+nostia-android/.gradle/
+nostia-android/app/build/
 *.xcworkspace
 *.xcuserdata
 *.pbxuser

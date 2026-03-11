@@ -3,6 +3,13 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+// Load signing credentials and API keys from local.properties (gitignored)
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withInputStream { localProperties.load(it) }
+}
+
 android {
     namespace 'com.nostia.app'
     compileSdk 35
@@ -18,12 +25,31 @@ android {
         vectorDrawables {
             useSupportLibrary true
         }
+
+        def mapsKey = localProperties.getProperty('MAPS_API_KEY', 'PLACEHOLDER_GOOGLE_MAPS_API_KEY')
+        def stripeKey = localProperties.getProperty('STRIPE_PUBLISHABLE_KEY', 'PLACEHOLDER_STRIPE_PUBLISHABLE_KEY')
+        manifestPlaceholders = [MAPS_API_KEY: mapsKey]
+        buildConfigField "String", "MAPS_API_KEY", "\"${mapsKey}\""
+        buildConfigField "String", "STRIPE_PUBLISHABLE_KEY", "\"${stripeKey}\""
+    }
+
+    signingConfigs {
+        release {
+            def ksFile = localProperties.getProperty('KEYSTORE_FILE', '')
+            if (ksFile) {
+                storeFile file(ksFile)
+                storePassword localProperties.getProperty('KEYSTORE_PASSWORD', '')
+                keyAlias localProperties.getProperty('KEY_ALIAS', '')
+                keyPassword localProperties.getProperty('KEY_PASSWORD', '')
+            }
+        }
     }
 
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
 
@@ -38,6 +64,7 @@ android {
 
     buildFeatures {
         compose true
+        buildConfig true
     }
 
     composeOptions {
@@ -90,6 +117,9 @@ dependencies {
 
     // Play Services Location (FusedLocationProviderClient)
     implementation 'com.google.android.gms:play-services-location:21.3.0'
+
+    // Stripe
+    implementation 'com.stripe:stripe-android:21.3.0'
 
     // Coil (image loading)
     implementation 'io.coil-kt:coil-compose:2.7.0'

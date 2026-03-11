@@ -1,5 +1,6 @@
 package com.nostia.app.data.api
 
+import com.nostia.app.BuildConfig
 import com.nostia.app.constants.AppConstants
 import com.nostia.app.data.auth.TokenManager
 import okhttp3.Interceptor
@@ -32,7 +33,7 @@ class RetrofitClient(private val tokenManager: TokenManager) {
 
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(authInterceptor)
-        .addInterceptor(loggingInterceptor)
+        .apply { if (BuildConfig.DEBUG) addInterceptor(loggingInterceptor) }
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
