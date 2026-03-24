@@ -547,6 +547,20 @@ function initializeDatabase() {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_audit_log_user ON audit_log(userId)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_audit_log_action ON audit_log(action)`);
 
+  // Token blacklist (for server-side JWT revocation on logout)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS token_blacklist (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      token TEXT UNIQUE NOT NULL,
+      userId INTEGER,
+      revokedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      expiresAt DATETIME NOT NULL,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_token_blacklist_token ON token_blacklist(token)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_token_blacklist_expires ON token_blacklist(expiresAt)`);
+
   // Payment production columns on vault_transactions
   try {
     db.exec(`ALTER TABLE vault_transactions ADD COLUMN transferId TEXT`);

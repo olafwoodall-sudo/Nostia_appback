@@ -3,7 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ActivityIndicator, View, StyleSheet, DeviceEventEmitter } from 'react-native';
+import { ActivityIndicator, View, StyleSheet, DeviceEventEmitter, AppState, AppStateStatus } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import Toast, { toastConfig } from './src/components/Toast';
 
@@ -23,14 +23,20 @@ const Stack = createStackNavigator();
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isBackground, setIsBackground] = useState(false);
 
   useEffect(() => {
     checkAuth();
     const loginSub = DeviceEventEmitter.addListener('app-authenticated', () => setIsAuthenticated(true));
     const logoutSub = DeviceEventEmitter.addListener('app-unauthenticated', () => setIsAuthenticated(false));
+    // Obscure screen content when app backgrounds (04-C: screenshot protection)
+    const appStateSub = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+      setIsBackground(nextState === 'background' || nextState === 'inactive');
+    });
     return () => {
       loginSub.remove();
       logoutSub.remove();
+      appStateSub.remove();
     };
   }, []);
 
@@ -57,6 +63,9 @@ export default function App() {
   return (
     <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY} merchantIdentifier="merchant.com.nostia">
     <SafeAreaProvider>
+      {isBackground && (
+        <View style={styles.privacyOverlay} />
+      )}
       <NavigationContainer>
         <StatusBar style="light" />
         <Stack.Navigator
@@ -121,5 +130,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#111827',
+  },
+  privacyOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#111827',
+    zIndex: 9999,
   },
 });

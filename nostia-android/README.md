@@ -136,3 +136,42 @@ com.nostia.app/
 | Security Crypto | 1.1.0-alpha06 |
 | Kotlin Coroutines | 1.8.1 |
 | Coil | 2.7.0 |
+to do: 
+External steps
+1. Create nostia-android/local.properties (copy from the example)
+
+sdk.dir=C\:\\Users\\YOUR_USERNAME\\AppData\\Local\\Android\\Sdk
+KEYSTORE_FILE=../nostia-release.jks
+KEYSTORE_PASSWORD=your_password
+KEY_ALIAS=nostia
+KEY_PASSWORD=your_password
+MAPS_API_KEY=your_google_maps_key
+STRIPE_PUBLISHABLE_KEY=pk_live_...   ← copy from your .env
+2. Generate a keystore (one-time, keep it forever)
+
+keytool -genkey -v -keystore nostia-release.jks \
+  -alias nostia -keyalg RSA -keysize 2048 -validity 10000
+Save it at c:/nostia-app/nostia-release.jks (matches KEYSTORE_FILE above). Back this file up somewhere safe — losing it locks you out of future updates.
+
+3. Get your Google Maps API key
+Google Cloud Console → APIs & Services → Credentials → Create API Key
+Restrict it: Android apps → package com.nostia.app + SHA-1 from your keystore:
+
+keytool -list -v -keystore nostia-release.jks -alias nostia
+Enable Maps SDK for Android in the project library
+4. Build the release bundle in Android Studio
+4. Build the release bundle in Android Studio
+Build → Generate Signed Bundle/APK → Android App Bundle → select nostia-android/nostia-release.jks
+
+Output: nostia-android/app/build/outputs/bundle/release/app-release.aab
+
+5. Play Store (play.google.com/console)
+Create app → Upload the .aab to Internal Testing first (good practice before production)
+Fill out: content rating, privacy policy URL, target audience
+Add screenshots
+Submit
+
+
+
+
+

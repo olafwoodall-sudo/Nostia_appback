@@ -80,6 +80,12 @@ export const authAPI = {
   },
 
   logout: async () => {
+    try {
+      // Revoke token server-side before deleting locally
+      await api.post('/auth/logout');
+    } catch {
+      // Proceed with local logout even if server call fails
+    }
     await SecureStore.deleteItemAsync('jwt_token');
   },
 

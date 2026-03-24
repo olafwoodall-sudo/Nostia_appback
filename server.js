@@ -14,7 +14,7 @@ function handleValidationErrors(req, res, next) {
 }
 
 // Import middleware
-const { generateToken, authenticateToken, optionalAuth, requireConsent, requireAnalyticsAccess } = require('./middleware/auth');
+const { generateToken, authenticateToken, optionalAuth, requireConsent, requireAnalyticsAccess, pruneTokenBlacklist, JWT_SECRET } = require('./middleware/auth');
 
 const db = require('./database/db');
 
@@ -98,6 +98,18 @@ const paymentLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Search rate limiter (20 searches per minute — prevents user enumeration)
+const searchLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  message: { error: 'Too many search requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Prune expired blacklisted tokens every hour
+setInterval(pruneTokenBlacklist, 60 * 60 * 1000);
+
 app.use('/api/', apiLimiter);
 
 // Standard middleware
@@ -122,7 +134,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
     event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
   } catch (err) {
     console.error('Webhook signature verification failed:', err.message);
-    return res.status(400).json({ error: `Webhook Error: ${err.message}` });
+    return res.status(400).json({ error: 'Webhook signature verification failed' });
   }
 
   try {
@@ -134,7 +146,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
   }
 });
 
-app.use(express.json());
+app.use(express.json({ limit: '10kb' }));
 
 // ==================== LOGGING MIDDLEWARE ====================
 
@@ -252,7 +264,7 @@ app.post('/api/auth/register', authLimiter, [
     });
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Registration failed' });
   }
 });
 
@@ -293,7 +305,29 @@ app.post('/api/auth/login', authLimiter, [
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// Logout — revokes JWT server-side by adding it to the blacklist
+app.post('/api/auth/logout', authenticateToken, (req, res) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (token) {
+      const jwt = require('jsonwebtoken');
+      const decoded = jwt.decode(token);
+      const expiresAt = decoded?.exp
+        ? new Date(decoded.exp * 1000).toISOString()
+        : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      db.prepare(
+        'INSERT OR IGNORE INTO token_blacklist (token, userId, expiresAt) VALUES (?, ?, ?)'
+      ).run(token, req.user.id, expiresAt);
+    }
+    auditLog('AUTH_LOGOUT', req.user.id, {}, req);
+    res.json({ message: 'Logged out successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Logout failed' });
   }
 });
 
@@ -977,7 +1011,7 @@ app.post('/api/adventures', authenticateToken, (req, res) => {
 // ==================== UTILITY ROUTES ====================
 
 // Search users (for adding friends)
-app.get('/api/users/search', authenticateToken, (req, res) => {
+app.get('/api/users/search', authenticateToken, searchLimiter, (req, res) => {
   try {
     const { query } = req.query;
 

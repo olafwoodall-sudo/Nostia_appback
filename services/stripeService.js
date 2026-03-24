@@ -3,7 +3,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const db = require('../database/db');
 
 console.log('💳 Stripe Service Initialized');
-console.log(`   - Secret Key: ${process.env.STRIPE_SECRET_KEY ? '✅ Set (' + process.env.STRIPE_SECRET_KEY.slice(0, 7) + '...)' : '❌ Missing'}`);
+console.log(`   - Secret Key: ${process.env.STRIPE_SECRET_KEY ? '✅ Set' : '❌ Missing'}`);
 console.log(`   - Webhook Secret: ${process.env.STRIPE_WEBHOOK_SECRET ? '✅ Set' : '❌ Missing'}`);
 
 function calculateChargedAmount(owed) {

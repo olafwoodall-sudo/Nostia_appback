@@ -1,5 +1,11 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const db = require('../database/db');
+
+// Remove expired entries from the blacklist (called periodically)
+function pruneTokenBlacklist() {
+  db.prepare('DELETE FROM token_blacklist WHERE expiresAt < CURRENT_TIMESTAMP').run();
+}
 
 if (!process.env.JWT_SECRET) {
   console.error('FATAL: JWT_SECRET environment variable is not set. Server cannot start securely.');
@@ -31,6 +37,12 @@ function authenticateToken(req, res, next) {
 
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
     if (err) {
+      return res.status(403).json({ error: 'Invalid or expired token' });
+    }
+
+    // Check if token has been revoked (logged out server-side)
+    const revoked = db.prepare('SELECT id FROM token_blacklist WHERE token = ?').get(token);
+    if (revoked) {
       return res.status(403).json({ error: 'Invalid or expired token' });
     }
 
@@ -94,5 +106,6 @@ module.exports = {
   optionalAuth,
   requireConsent,
   requireAnalyticsAccess,
+  pruneTokenBlacklist,
   JWT_SECRET
 };

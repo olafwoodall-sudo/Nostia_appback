@@ -21,7 +21,7 @@ final class AuthManager: ObservableObject {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: tokenKey,
             kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         ]
         SecItemDelete(query as CFDictionary)
         SecItemAdd(query as CFDictionary, nil)
@@ -58,6 +58,18 @@ final class AuthManager: ObservableObject {
     }
 
     func logout() {
+        // Revoke token server-side (fire-and-forget) before deleting locally
+        if let token = getToken() {
+            Task {
+                _ = try? await URLSession.shared.data(for: {
+                    var req = URLRequest(url: URL(string: AppConfig.apiBaseURL + "/auth/logout")!)
+                    req.httpMethod = "POST"
+                    req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                    req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                    return req
+                }())
+            }
+        }
         deleteToken()
         NotificationCenter.default.post(name: .userDidLogout, object: nil)
     }
