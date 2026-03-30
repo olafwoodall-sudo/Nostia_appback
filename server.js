@@ -841,7 +841,28 @@ app.get('/api/vault/trip/:tripId', authenticateToken, (req, res) => {
 // Create vault entry (expense)
 app.post('/api/vault', authenticateToken, (req, res) => {
   try {
-    const entry = Vault.createEntry(req.body);
+    const { tripId, description, amount, currency, paidBy, category, date, splits } = req.body;
+
+    let finalSplits = splits;
+
+    // Auto-split equally among all trip participants when no splits provided
+    if (!finalSplits || finalSplits.length === 0) {
+      const trip = Trip.findById(tripId);
+      if (!trip) return res.status(404).json({ error: 'Trip not found' });
+
+      const participants = trip.participants;
+      if (participants.length > 0) {
+        // Floor each split to cents, give remainder to last participant
+        const each = Math.floor((amount / participants.length) * 100) / 100;
+        const lastAmount = Math.round((amount - each * (participants.length - 1)) * 100) / 100;
+        finalSplits = participants.map((p, i) => ({
+          userId: p.id,
+          amount: i === participants.length - 1 ? lastAmount : each,
+        }));
+      }
+    }
+
+    const entry = Vault.createEntry({ tripId, description, amount, currency, paidBy, category, date, splits: finalSplits });
     res.status(201).json(entry);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -1829,31 +1850,34 @@ app.post('/api/vault/splits/:splitId/payment-intent', paymentLimiter, authentica
       return res.json({ clientSecret: pi.client_secret, chargedAmount: pi.amount / 100 });
     }
 
-    // Verify the expense payer has completed Stripe onboarding
-    const payer = db.prepare(
-      'SELECT id, stripe_account_id, onboarding_complete FROM users WHERE id = ?'
-    ).get(split.paidBy);
-    if (!payer?.stripe_account_id || !payer.onboarding_complete) {
-      return res.status(400).json({ error: 'The person who paid this expense has not set up Stripe payments yet' });
-    }
-
     const chargedAmount = calculateChargedAmount(split.amount);
     const Stripe = require('stripe');
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-    const intent = await stripe.paymentIntents.create({
+    // Check if expense payer has Stripe Connect — transfer if available, otherwise charge directly
+    const payer = db.prepare(
+      'SELECT id, stripe_account_id, onboarding_complete FROM users WHERE id = ?'
+    ).get(split.paidBy);
+
+    const intentParams = {
       amount: Math.round(chargedAmount * 100),
       currency: 'usd',
       automatic_payment_methods: { enabled: true },
-      transfer_data: {
-        destination: payer.stripe_account_id,
-        amount: Math.round(split.amount * 100)
-      },
       metadata: {
         splitId: splitId.toString(),
         type: 'vault_split'
       }
-    });
+    };
+
+    // Only add transfer if payer has completed Stripe Connect onboarding
+    if (payer?.stripe_account_id && payer.onboarding_complete) {
+      intentParams.transfer_data = {
+        destination: payer.stripe_account_id,
+        amount: Math.round(split.amount * 100)
+      };
+    }
+
+    const intent = await stripe.paymentIntents.create(intentParams);
 
     db.prepare(`
       INSERT INTO vault_transactions
