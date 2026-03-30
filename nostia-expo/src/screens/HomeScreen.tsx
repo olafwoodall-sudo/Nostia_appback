@@ -88,7 +88,13 @@ export default function HomeScreen() {
         friendsAPI.getAll(),
         feedAPI.getUserFeed(),
       ]);
-      if (userResult.status === 'fulfilled') setUser(userResult.value);
+      if (userResult.status === 'fulfilled') {
+        setUser(userResult.value);
+      } else {
+        // Token exists but user not found on server (e.g. DB reset) — force re-login
+        DeviceEventEmitter.emit('app-unauthenticated');
+        return;
+      }
       if (tripsResult.status === 'fulfilled') setTrips(tripsResult.value);
       if (eventsResult.status === 'fulfilled') setEvents(eventsResult.value);
       if (friendsResult.status === 'fulfilled') setFriends(friendsResult.value);

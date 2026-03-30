@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { feedAPI } from '../services/api';
 
@@ -110,11 +111,11 @@ export default function CommentsModal({ visible, postId, onClose, onCommentAdded
   );
 
   return (
-    <Modal visible={visible} animationType="slide">
+    <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
+      <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
-        keyboardVerticalOffset={0}
+        style={{ flex: 1 }}
       >
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Comments</Text>
@@ -167,6 +168,7 @@ export default function CommentsModal({ visible, postId, onClose, onCommentAdded
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+      </SafeAreaView>
     </Modal>
   );
 }
@@ -175,6 +177,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#111827',
+    paddingTop: 0,
   },
   header: {
     flexDirection: 'row',
