@@ -290,6 +290,33 @@ function initializeDatabase() {
     // Column already exists
   }
 
+  // Add homeStatus column to users if it doesn't exist
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN homeStatus TEXT DEFAULT 'closed'`);
+  } catch (e) {
+    // Column already exists
+  }
+
+  // Add role column to users if it doesn't exist
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'`);
+  } catch (e) {
+    // Column already exists
+  }
+
+  // Add latitude/longitude to users if they don't exist
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN latitude REAL`);
+  } catch (e) {
+    // Column already exists
+  }
+
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN longitude REAL`);
+  } catch (e) {
+    // Column already exists
+  }
+
   // Add imageData column to feed_posts if it doesn't exist
   try {
     db.exec(`ALTER TABLE feed_posts ADD COLUMN imageData TEXT`);
