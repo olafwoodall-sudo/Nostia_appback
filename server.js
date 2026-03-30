@@ -344,6 +344,30 @@ app.get('/api/users/me', authenticateToken, (req, res) => {
   }
 });
 
+// Search users (for adding friends) — must be before /api/users/:id
+app.get('/api/users/search', authenticateToken, searchLimiter, (req, res) => {
+  try {
+    const { query } = req.query;
+
+    if (!query) {
+      return res.status(400).json({ error: 'Search query is required' });
+    }
+
+    const lowerQuery = query.toLowerCase();
+    const users = User.getAll();
+    const results = users.filter(user =>
+      user.id !== req.user.id && (
+        (user.username && user.username.toLowerCase().includes(lowerQuery)) ||
+        (user.name && user.name.toLowerCase().includes(lowerQuery))
+      )
+    );
+
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get public profile by user ID
 app.get('/api/users/:id', authenticateToken, (req, res) => {
   try {
@@ -1005,30 +1029,6 @@ app.post('/api/adventures', authenticateToken, (req, res) => {
 });
 
 // ==================== UTILITY ROUTES ====================
-
-// Search users (for adding friends)
-app.get('/api/users/search', authenticateToken, searchLimiter, (req, res) => {
-  try {
-    const { query } = req.query;
-
-    if (!query) {
-      return res.status(400).json({ error: 'Search query is required' });
-    }
-
-    const lowerQuery = query.toLowerCase();
-    const users = User.getAll();
-    const results = users.filter(user =>
-      user.id !== req.user.id && (
-        (user.username && user.username.toLowerCase().includes(lowerQuery)) ||
-        (user.name && user.name.toLowerCase().includes(lowerQuery))
-      )
-    );
-
-    res.json(results);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
 
 // ==================== NOTIFICATION ROUTES ====================
 
