@@ -38,9 +38,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nostia.app.data.api.ApiService
@@ -240,6 +242,30 @@ fun TripsScreen(
     }
 }
 
+private fun formatTripDate(raw: String): String {
+    val digits = raw.filter { it.isDigit() }.take(8)
+    return when {
+        digits.length <= 4 -> digits
+        digits.length <= 6 -> "${digits.take(4)}-${digits.drop(4)}"
+        else -> "${digits.take(4)}-${digits.drop(4).take(2)}-${digits.drop(6)}"
+    }
+}
+
+private fun isValidTripDate(value: String): Boolean {
+    if (!Regex("""\d{4}-\d{2}-\d{2}""").matches(value)) return false
+    val parts = value.split("-")
+    val y = parts[0].toIntOrNull() ?: return false
+    val m = parts[1].toIntOrNull() ?: return false
+    val d = parts[2].toIntOrNull() ?: return false
+    return try {
+        val cal = java.util.Calendar.getInstance()
+        cal.isLenient = false
+        cal.set(y, m - 1, d)
+        cal.time
+        true
+    } catch (_: Exception) { false }
+}
+
 @Composable
 private fun CreateTripDialog(
     apiService: ApiService,
@@ -254,6 +280,7 @@ private fun CreateTripDialog(
     var endDate by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val dateKeyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
 
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = NostiaPrimary,
@@ -299,19 +326,21 @@ private fun CreateTripDialog(
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = startDate,
-                    onValueChange = { startDate = it },
+                    onValueChange = { startDate = formatTripDate(it) },
                     label = { Text("Start Date (YYYY-MM-DD)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    keyboardOptions = dateKeyboardOptions,
                     colors = fieldColors
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = endDate,
-                    onValueChange = { endDate = it },
+                    onValueChange = { endDate = formatTripDate(it) },
                     label = { Text("End Date (YYYY-MM-DD)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    keyboardOptions = dateKeyboardOptions,
                     colors = fieldColors
                 )
                 if (errorMessage != null) {
@@ -329,6 +358,18 @@ private fun CreateTripDialog(
                 onClick = {
                     if (title.isBlank()) {
                         errorMessage = "Title is required"
+                        return@Button
+                    }
+                    if (startDate.isNotBlank() && !isValidTripDate(startDate)) {
+                        errorMessage = "Start date is not a valid date"
+                        return@Button
+                    }
+                    if (endDate.isNotBlank() && !isValidTripDate(endDate)) {
+                        errorMessage = "End date is not a valid date"
+                        return@Button
+                    }
+                    if (startDate.isNotBlank() && endDate.isNotBlank() && endDate < startDate) {
+                        errorMessage = "End date must be on or after start date"
                         return@Button
                     }
                     scope.launch {

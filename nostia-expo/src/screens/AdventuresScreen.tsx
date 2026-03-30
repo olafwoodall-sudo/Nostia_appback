@@ -12,6 +12,9 @@ import {
   ScrollView,
   Image,
   Modal,
+  KeyboardAvoidingView,
+  Platform,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -34,6 +37,7 @@ export default function AdventuresScreen() {
   const [selectedProfile, setSelectedProfile] = useState<any>(null);
   const [showProfile, setShowProfile] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(false);
+  const [showCreateAdventure, setShowCreateAdventure] = useState(false);
 
   const categories = [
     { id: 'all', label: 'All', icon: 'grid-outline' },
@@ -135,7 +139,11 @@ export default function AdventuresScreen() {
   };
 
   const handleAddToTrip = (adventure: any) => {
-    const ownedTrips = trips.filter((t: any) => t.createdBy === currentUser?.id);
+    if (!currentUser) {
+      Alert.alert('Error', 'Could not verify your account. Please refresh.');
+      return;
+    }
+    const ownedTrips = trips.filter((t: any) => t.createdBy === currentUser.id);
     if (ownedTrips.length === 0) {
       Alert.alert('No Trips', 'Create a trip first before adding adventures to it.');
       return;
@@ -373,25 +381,42 @@ export default function AdventuresScreen() {
 
       {/* Content */}
       {activeTab === 'adventures' ? (
-        <FlatList
-          data={filterAdventures()}
-          renderItem={renderAdventureCard}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#3B82F6"
-            />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Ionicons name="compass-outline" size={64} color="#6B7280" />
-              <Text style={styles.emptyText}>No adventures found</Text>
-            </View>
-          }
-        />
+        <>
+          <FlatList
+            data={filterAdventures()}
+            renderItem={renderAdventureCard}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#3B82F6"
+              />
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Ionicons name="compass-outline" size={64} color="#6B7280" />
+                <Text style={styles.emptyText}>No adventures found</Text>
+                <Text style={styles.emptySubtext}>Be the first to add one!</Text>
+              </View>
+            }
+          />
+          <TouchableOpacity
+            style={styles.fab}
+            onPress={() => setShowCreateAdventure(true)}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={['#F59E0B', '#EC4899']}
+              style={styles.fabGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Ionicons name="add" size={28} color="#FFFFFF" />
+            </LinearGradient>
+          </TouchableOpacity>
+        </>
       ) : (
         <>
           <FlatList
@@ -449,6 +474,12 @@ export default function AdventuresScreen() {
         onCommentAdded={handleCommentAdded}
       />
 
+      <CreateAdventureModal
+        visible={showCreateAdventure}
+        onClose={() => setShowCreateAdventure(false)}
+        onCreated={() => { setShowCreateAdventure(false); loadData(); }}
+      />
+
       {/* Profile Modal */}
       <Modal visible={showProfile} animationType="slide" transparent onRequestClose={() => { setShowProfile(false); setSelectedProfile(null); }}>
         <View style={styles.profileOverlay}>
@@ -482,6 +513,104 @@ export default function AdventuresScreen() {
         </View>
       </Modal>
     </View>
+  );
+}
+
+function CreateAdventureModal({
+  visible,
+  onClose,
+  onCreated,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [location, setLocation] = useState('');
+  const [category, setCategory] = useState('');
+  const [difficulty, setDifficulty] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const categories = ['hiking', 'climbing', 'water-sports', 'camping', 'cycling', 'other'];
+  const difficulties = ['easy', 'moderate', 'hard', 'expert'];
+
+  const handleCreate = async () => {
+    if (!title.trim() || !location.trim()) {
+      Alert.alert('Missing Info', 'Title and location are required');
+      return;
+    }
+    try {
+      setLoading(true);
+      await adventuresAPI.create({ title: title.trim(), description: description.trim(), location: location.trim(), category, difficulty });
+      setTitle(''); setDescription(''); setLocation(''); setCategory(''); setDifficulty('');
+      onCreated();
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.error || 'Failed to create adventure');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    setTitle(''); setDescription(''); setLocation(''); setCategory(''); setDifficulty('');
+    onClose();
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' }}>
+        <View style={{ backgroundColor: '#1F2937', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '90%', paddingBottom: 20 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#374151' }}>
+            <Text style={{ fontSize: ms(20), fontWeight: 'bold', color: '#FFFFFF' }}>New Adventure</Text>
+            <TouchableOpacity onPress={handleClose}><Ionicons name="close" size={28} color="#FFFFFF" /></TouchableOpacity>
+          </View>
+          <ScrollView style={{ padding: 20 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 8 }}>
+            {[
+              { label: 'Title *', value: title, setter: setTitle, placeholder: 'e.g., Eagle Peak Trail' },
+              { label: 'Location *', value: location, setter: setLocation, placeholder: 'e.g., Rocky Mountain National Park' },
+            ].map(({ label, value, setter, placeholder }) => (
+              <View key={label} style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: ms(13), fontWeight: '600', color: '#D1D5DB', marginBottom: 6 }}>{label}</Text>
+                <TextInput style={{ backgroundColor: '#374151', borderRadius: 8, padding: 14, fontSize: ms(15), color: '#FFFFFF', borderWidth: 1, borderColor: '#4B5563' }} value={value} onChangeText={setter} placeholder={placeholder} placeholderTextColor="#6B7280" />
+              </View>
+            ))}
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: ms(13), fontWeight: '600', color: '#D1D5DB', marginBottom: 6 }}>Description</Text>
+              <TextInput style={{ backgroundColor: '#374151', borderRadius: 8, padding: 14, fontSize: ms(15), color: '#FFFFFF', borderWidth: 1, borderColor: '#4B5563', minHeight: 80, textAlignVertical: 'top' }} value={description} onChangeText={setDescription} placeholder="Describe the adventure..." placeholderTextColor="#6B7280" multiline />
+            </View>
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: ms(13), fontWeight: '600', color: '#D1D5DB', marginBottom: 8 }}>Category</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {categories.map(c => (
+                  <TouchableOpacity key={c} onPress={() => setCategory(category === c ? '' : c)} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: category === c ? '#3B82F6' : '#374151' }}>
+                    <Text style={{ fontSize: ms(13), color: '#FFFFFF', textTransform: 'capitalize' }}>{c}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: ms(13), fontWeight: '600', color: '#D1D5DB', marginBottom: 8 }}>Difficulty</Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {difficulties.map(d => (
+                  <TouchableOpacity key={d} onPress={() => setDifficulty(difficulty === d ? '' : d)} style={{ flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: difficulty === d ? '#7C3AED' : '#374151', alignItems: 'center' }}>
+                    <Text style={{ fontSize: ms(12), color: '#FFFFFF', textTransform: 'capitalize' }}>{d}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </ScrollView>
+          <View style={{ flexDirection: 'row', paddingHorizontal: 20, paddingTop: 12, gap: 12 }}>
+            <TouchableOpacity style={{ flex: 1, backgroundColor: '#374151', borderRadius: 12, padding: 16, alignItems: 'center' }} onPress={handleClose} disabled={loading}>
+              <Text style={{ fontSize: ms(16), fontWeight: '600', color: '#D1D5DB' }}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{ flex: 1, backgroundColor: '#F59E0B', borderRadius: 12, padding: 16, alignItems: 'center' }} onPress={handleCreate} disabled={loading}>
+              {loading ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={{ fontSize: ms(16), fontWeight: '600', color: '#FFFFFF' }}>Create</Text>}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 }
 

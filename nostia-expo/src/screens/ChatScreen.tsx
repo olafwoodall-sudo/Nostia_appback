@@ -92,7 +92,7 @@ export default function ChatScreen({ route, navigation }: any) {
     try {
       setSending(true);
       const message = await messagesAPI.sendMessage(conversationId, newMessage.trim());
-      setMessages([...messages, message]);
+      setMessages(prev => [...prev, message]);
       setNewMessage('');
 
       // Scroll to bottom

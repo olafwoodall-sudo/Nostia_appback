@@ -6,6 +6,7 @@ import {
   Modal,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { CameraView, CameraType, FlashMode, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,13 +28,13 @@ export default function CameraModal({ visible, onClose, onPhotoTaken }: CameraMo
     if (!cameraRef.current || capturing) return;
     setCapturing(true);
     try {
-      const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.7 });
+      const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.5, exif: false });
       if (photo?.base64) {
         onPhotoTaken(`data:image/jpeg;base64,${photo.base64}`);
         onClose();
       }
-    } catch (e) {
-      // silently ignore
+    } catch (e: any) {
+      Alert.alert('Camera Error', e?.message || 'Failed to take photo. Please try again.');
     } finally {
       setCapturing(false);
     }

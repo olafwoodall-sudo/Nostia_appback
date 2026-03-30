@@ -108,6 +108,14 @@ data class Adventure(
     val imageUrl: String?
 )
 
+data class CreateAdventureRequest(
+    val title: String,
+    val location: String,
+    val description: String? = null,
+    val category: String? = null,
+    val difficulty: String? = null
+)
+
 // ── Feed ──────────────────────────────────────────────────────────────────────
 
 data class Post(

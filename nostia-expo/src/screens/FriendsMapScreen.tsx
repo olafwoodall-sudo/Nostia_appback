@@ -1,5 +1,5 @@
 import { ms } from '../utils/scale';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,8 +7,8 @@ import {
   ActivityIndicator,
   Alert,
   TouchableOpacity,
+  ScrollView,
 } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { friendsAPI } from '../services/api';
 
@@ -21,18 +21,10 @@ interface FriendLocation {
   updatedAt: string;
 }
 
-const DEFAULT_REGION = {
-  latitude: 51.505,
-  longitude: -0.09,
-  latitudeDelta: 10,
-  longitudeDelta: 10,
-};
-
 export default function FriendsMapScreen() {
   const [friends, setFriends] = useState<FriendLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFriend, setSelectedFriend] = useState<FriendLocation | null>(null);
-  const mapRef = useRef<MapView>(null);
 
   useEffect(() => {
     loadLocations();
@@ -58,29 +50,6 @@ export default function FriendsMapScreen() {
     return `${Math.floor(hrs / 24)}d ago`;
   };
 
-  const focusFriend = (friend: FriendLocation) => {
-    setSelectedFriend(friend);
-    mapRef.current?.animateToRegion(
-      {
-        latitude: friend.latitude,
-        longitude: friend.longitude,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
-      },
-      500,
-    );
-  };
-
-  const getInitialRegion = () => {
-    if (friends.length === 0) return DEFAULT_REGION;
-    return {
-      latitude: friends[0].latitude,
-      longitude: friends[0].longitude,
-      latitudeDelta: 5,
-      longitudeDelta: 5,
-    };
-  };
-
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -101,76 +70,57 @@ export default function FriendsMapScreen() {
         </Text>
       </View>
 
-      {/* Map */}
-      <View style={styles.mapContainer}>
-        <MapView
-          ref={mapRef}
-          style={styles.map}
-          provider={PROVIDER_GOOGLE}
-          initialRegion={getInitialRegion()}
-          showsUserLocation
-          showsMyLocationButton
-        >
-          {friends.map((friend) => (
-            <Marker
-              key={friend.id}
-              coordinate={{ latitude: friend.latitude, longitude: friend.longitude }}
-              title={friend.name}
-              description={`@${friend.username} · ${formatUpdated(friend.updatedAt)}`}
-              onPress={() => setSelectedFriend(friend)}
-            />
-          ))}
-        </MapView>
-
-        {friends.length === 0 && (
-          <View style={styles.emptyOverlay}>
-            <Ionicons name="people-outline" size={32} color="#6B7280" />
-            <Text style={styles.emptyOverlayText}>
-              Friends appear here once they enable location sharing.
-            </Text>
-          </View>
-        )}
+      {/* Expo Go notice */}
+      <View style={styles.noticeBanner}>
+        <Ionicons name="information-circle-outline" size={16} color="#60A5FA" />
+        <Text style={styles.noticeText}>
+          Map view requires a development build. Location data shown below.
+        </Text>
       </View>
 
-      {/* Selected friend card */}
-      {selectedFriend && (
-        <View style={styles.selectedCard}>
-          <View style={styles.friendAvatar}>
-            <Text style={styles.friendInitial}>
-              {selectedFriend.name.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-          <View style={styles.friendInfo}>
-            <Text style={styles.friendName}>{selectedFriend.name}</Text>
-            <Text style={styles.friendUsername}>@{selectedFriend.username}</Text>
-            <Text style={styles.friendUpdated}>
-              Updated {formatUpdated(selectedFriend.updatedAt)}
-            </Text>
-          </View>
-          <TouchableOpacity onPress={() => setSelectedFriend(null)} style={styles.closeBtn}>
-            <Ionicons name="close" size={20} color="#9CA3AF" />
-          </TouchableOpacity>
+      {friends.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="people-outline" size={64} color="#6B7280" />
+          <Text style={styles.emptyText}>No friends sharing location</Text>
+          <Text style={styles.emptySubtext}>
+            Friends appear here once they enable location sharing.
+          </Text>
         </View>
-      )}
-
-      {/* Friend list chips */}
-      {friends.length > 0 && !selectedFriend && (
-        <View style={styles.chipRow}>
+      ) : (
+        <ScrollView contentContainerStyle={styles.listContent}>
           {friends.map((friend) => (
             <TouchableOpacity
               key={friend.id}
-              style={styles.chip}
-              onPress={() => focusFriend(friend)}
+              style={[
+                styles.friendCard,
+                selectedFriend?.id === friend.id && styles.friendCardSelected,
+              ]}
+              onPress={() =>
+                setSelectedFriend(selectedFriend?.id === friend.id ? null : friend)
+              }
+              activeOpacity={0.7}
             >
-              <View style={styles.chipAvatar}>
-                <Text style={styles.chipInitial}>
+              <View style={styles.friendAvatar}>
+                <Text style={styles.friendInitial}>
                   {friend.name.charAt(0).toUpperCase()}
                 </Text>
               </View>
-              <Text style={styles.chipName}>{friend.name}</Text>
+              <View style={styles.friendInfo}>
+                <Text style={styles.friendName}>{friend.name}</Text>
+                <Text style={styles.friendUsername}>@{friend.username}</Text>
+                <Text style={styles.friendCoords}>
+                  {friend.latitude.toFixed(4)}, {friend.longitude.toFixed(4)}
+                </Text>
+              </View>
+              <View style={styles.friendMeta}>
+                <Ionicons name="location-outline" size={14} color="#3B82F6" />
+                <Text style={styles.friendUpdated}>
+                  {formatUpdated(friend.updatedAt)}
+                </Text>
+              </View>
             </TouchableOpacity>
           ))}
-        </View>
+        </ScrollView>
       )}
     </View>
   );
@@ -189,35 +139,46 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: ms(22), fontWeight: 'bold', color: '#FFFFFF' },
   headerSub: { fontSize: ms(13), color: '#9CA3AF', marginTop: 2 },
-  mapContainer: { flex: 1, position: 'relative' },
-  map: { flex: 1 },
-  emptyOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
+  noticeBanner: {
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(17,24,39,0.6)',
-    gap: 10,
-    paddingHorizontal: 40,
+    gap: 8,
+    backgroundColor: '#1E3A5F',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2563EB',
   },
-  emptyOverlayText: {
+  noticeText: { fontSize: ms(12), color: '#93C5FD', flex: 1 },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: { fontSize: ms(18), fontWeight: 'bold', color: '#FFFFFF', marginTop: 16 },
+  emptySubtext: {
     fontSize: ms(14),
     color: '#9CA3AF',
+    marginTop: 8,
     textAlign: 'center',
+    paddingHorizontal: 40,
   },
-  selectedCard: {
+  listContent: { padding: 16, paddingBottom: 40 },
+  friendCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#1F2937',
-    margin: 12,
     borderRadius: 12,
     padding: 14,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#374151',
     gap: 12,
+  },
+  friendCardSelected: {
+    borderColor: '#3B82F6',
+    backgroundColor: '#1E3A5F',
   },
   friendAvatar: {
     width: 44,
@@ -231,35 +192,7 @@ const styles = StyleSheet.create({
   friendInfo: { flex: 1 },
   friendName: { fontSize: ms(15), fontWeight: '600', color: '#FFFFFF' },
   friendUsername: { fontSize: ms(12), color: '#9CA3AF', marginTop: 1 },
-  friendUpdated: { fontSize: ms(11), color: '#6B7280', marginTop: 2 },
-  closeBtn: { padding: 4 },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 12,
-    gap: 8,
-    backgroundColor: '#1F2937',
-    borderTopWidth: 1,
-    borderTopColor: '#374151',
-    maxHeight: 120,
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#374151',
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    gap: 6,
-  },
-  chipAvatar: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#3B82F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  chipInitial: { fontSize: ms(11), fontWeight: 'bold', color: '#FFFFFF' },
-  chipName: { fontSize: ms(12), color: '#FFFFFF' },
+  friendCoords: { fontSize: ms(11), color: '#6B7280', marginTop: 2 },
+  friendMeta: { alignItems: 'flex-end', gap: 4 },
+  friendUpdated: { fontSize: ms(11), color: '#6B7280' },
 });

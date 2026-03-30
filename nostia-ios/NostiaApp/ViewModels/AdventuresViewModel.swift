@@ -43,4 +43,15 @@ final class AdventuresViewModel: ObservableObject {
         }
         isLoading = false
     }
+
+    func createAdventure(title: String, location: String, description: String, category: String?, difficulty: String?) async throws {
+        let _ = try await AdventuresAPI.shared.createAdventure(
+            title: title,
+            location: location,
+            description: description.isEmpty ? nil : description,
+            category: category,
+            difficulty: difficulty
+        )
+        await loadAll()
+    }
 }

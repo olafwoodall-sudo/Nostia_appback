@@ -92,7 +92,11 @@ export default function NotificationsScreen({ navigation }: any) {
       case 'message':
         // Navigate to chat if conversation ID is available
         if (data?.conversationId) {
-          navigation.navigate('Chat', { conversationId: data.conversationId });
+          navigation.navigate('Chat', {
+            conversationId: data.conversationId,
+            friendName: data.friendName || 'Chat',
+            friendId: data.friendId,
+          });
         }
         break;
       default:

@@ -97,6 +97,7 @@ struct NostiaTextField: View {
     let label: String
     let placeholder: String
     @Binding var text: String
+    var keyboardType: UIKeyboardType = .default
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -104,6 +105,7 @@ struct NostiaTextField: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(Color(hex: "D1D5DB"))
             TextField(placeholder, text: $text)
+                .keyboardType(keyboardType)
                 .padding(16)
                 .background(Color.nostiaCard)
                 .cornerRadius(12)

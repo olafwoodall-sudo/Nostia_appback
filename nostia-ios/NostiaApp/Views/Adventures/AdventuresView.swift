@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AdventuresView: View {
     @StateObject private var vm = AdventuresViewModel()
+    @State private var showCreateAdventure = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -58,20 +59,36 @@ struct AdventuresView: View {
                 }
                 .padding(.bottom, 8)
 
-                List(vm.adventures) { adventure in
-                    AdventureCard(adventure: adventure)
-                        .listRowBackground(Color.clear).listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
-                }
-                .listStyle(.plain).background(Color.nostiaBackground)
-                .refreshable { await vm.loadAll() }
-                .overlay {
-                    if vm.adventures.isEmpty { EmptyStateView(icon: "safari", text: "No adventures", sub: "Try a different search") }
+                ZStack(alignment: .bottomTrailing) {
+                    List(vm.adventures) { adventure in
+                        AdventureCard(adventure: adventure)
+                            .listRowBackground(Color.clear).listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                    }
+                    .listStyle(.plain).background(Color.nostiaBackground)
+                    .refreshable { await vm.loadAll() }
+                    .overlay {
+                        if vm.adventures.isEmpty { EmptyStateView(icon: "safari", text: "No adventures", sub: "Be the first to add one!") }
+                    }
+
+                    Button(action: { showCreateAdventure = true }) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 56, height: 56)
+                            .background(Color.nostiaAccent)
+                            .clipShape(Circle())
+                            .shadow(radius: 6)
+                    }
+                    .padding(20)
                 }
             }
         }
         .background(Color.nostiaBackground)
         .task { await vm.loadAll() }
+        .sheet(isPresented: $showCreateAdventure) {
+            CreateAdventureSheet(vm: vm, isPresented: $showCreateAdventure)
+        }
     }
 }
 
@@ -131,6 +148,134 @@ struct AdventureCard: View {
         }
         .padding(16).background(Color.nostiaCard).cornerRadius(12)
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.nostriaBorder, lineWidth: 1))
+    }
+}
+
+struct CreateAdventureSheet: View {
+    @ObservedObject var vm: AdventuresViewModel
+    @Binding var isPresented: Bool
+
+    @State private var title = ""
+    @State private var location = ""
+    @State private var description = ""
+    @State private var selectedCategory: String? = nil
+    @State private var selectedDifficulty: String? = nil
+    @State private var isLoading = false
+    @State private var errorMessage: String? = nil
+
+    let categories = ["hiking", "climbing", "water-sports", "camping", "cycling", "other"]
+    let difficulties = ["easy", "moderate", "hard", "expert"]
+
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    Group {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Title *").font(.caption.bold()).foregroundColor(Color.nostiaTextSecond)
+                            TextField("e.g., Eagle Peak Trail", text: $title)
+                                .padding(12).background(Color.nostiaCard).cornerRadius(8)
+                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.nostriaBorder, lineWidth: 1))
+                                .foregroundColor(.white)
+                        }
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Location *").font(.caption.bold()).foregroundColor(Color.nostiaTextSecond)
+                            TextField("e.g., Rocky Mountain National Park", text: $location)
+                                .padding(12).background(Color.nostiaCard).cornerRadius(8)
+                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.nostriaBorder, lineWidth: 1))
+                                .foregroundColor(.white)
+                        }
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Description").font(.caption.bold()).foregroundColor(Color.nostiaTextSecond)
+                            TextEditor(text: $description)
+                                .frame(minHeight: 80)
+                                .padding(8).background(Color.nostiaCard).cornerRadius(8)
+                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.nostriaBorder, lineWidth: 1))
+                                .foregroundColor(.white)
+                                .scrollContentBackground(.hidden)
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Category").font(.caption.bold()).foregroundColor(Color.nostiaTextSecond)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(categories, id: \.self) { cat in
+                                    FilterChip(
+                                        title: cat.capitalized,
+                                        isActive: selectedCategory == cat,
+                                        action: { selectedCategory = selectedCategory == cat ? nil : cat }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Difficulty").font(.caption.bold()).foregroundColor(Color.nostiaTextSecond)
+                        HStack(spacing: 8) {
+                            ForEach(difficulties, id: \.self) { diff in
+                                FilterChip(
+                                    title: diff.capitalized,
+                                    isActive: selectedDifficulty == diff,
+                                    action: { selectedDifficulty = selectedDifficulty == diff ? nil : diff }
+                                )
+                            }
+                        }
+                    }
+
+                    if let err = errorMessage {
+                        Text(err).font(.caption).foregroundColor(.red)
+                    }
+
+                    Button(action: {
+                        guard !title.trimmingCharacters(in: .whitespaces).isEmpty,
+                              !location.trimmingCharacters(in: .whitespaces).isEmpty else {
+                            errorMessage = "Title and location are required"
+                            return
+                        }
+                        isLoading = true
+                        errorMessage = nil
+                        Task {
+                            do {
+                                try await vm.createAdventure(
+                                    title: title.trimmingCharacters(in: .whitespaces),
+                                    location: location.trimmingCharacters(in: .whitespaces),
+                                    description: description.trimmingCharacters(in: .whitespaces),
+                                    category: selectedCategory,
+                                    difficulty: selectedDifficulty
+                                )
+                                isPresented = false
+                            } catch {
+                                errorMessage = error.localizedDescription
+                            }
+                            isLoading = false
+                        }
+                    }) {
+                        HStack {
+                            if isLoading { ProgressView().tint(.white) }
+                            else { Text("Create Adventure").fontWeight(.bold) }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(title.isEmpty || location.isEmpty ? Color.nostiaCard : Color.nostiaAccent)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                    }
+                    .disabled(isLoading || title.isEmpty || location.isEmpty)
+                }
+                .padding(20)
+            }
+            .background(Color.nostiaBackground.ignoresSafeArea())
+            .navigationTitle("New Adventure")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { isPresented = false }
+                        .foregroundColor(Color.nostiaTextSecond)
+                }
+            }
+        }
     }
 }
 

@@ -35,4 +35,12 @@ final class AdventuresAPI {
         if let lo = lng { body["longitude"] = lo }
         return try await client.request("/events", method: "POST", body: body)
     }
+
+    func createAdventure(title: String, location: String, description: String?, category: String?, difficulty: String?) async throws -> Adventure {
+        var body: [String: Any] = ["title": title, "location": location]
+        if let d = description, !d.isEmpty { body["description"] = d }
+        if let c = category { body["category"] = c }
+        if let d = difficulty { body["difficulty"] = d }
+        return try await client.request("/adventures", method: "POST", body: body)
+    }
 }

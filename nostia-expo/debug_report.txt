@@ -1,0 +1,57 @@
+NOSTIA EXPO DEBUG REPORT
+Updated: 2026-03-29
+Scope: Runtime errors from Expo Go testing
+
+Legend:
+  [EXPO]         = Expo/React Native specific — fix only in nostia-expo
+  [CROSS]        = Applies to all platforms — fix in expo, iOS, and Android
+  [SEVERITY]     = HIGH / MEDIUM / LOW
+
+No open bugs.
+
+================================================================================
+FIXED THIS SESSION
+================================================================================
+
+BUG E1 — api.ts: 401 not handled → expired token bypasses login screen
+================================================================================
+File:     src/services/api.ts (response interceptor)
+Severity: HIGH [EXPO]
+Symptoms: "Invalid or expired token" alert on every screen, user profile shows
+          "—" / "Adventurer", home shows "Failed to load home data".
+          User never sees login screen despite expired JWT.
+
+Root cause:
+  checkAuth() in App.tsx only checks token *existence* in SecureStore, not
+  validity. An expired token passes the check → isAuthenticated = true →
+  user enters the app. Every subsequent API call returns 401 but the response
+  interceptor only handled 429 and 403, not 401 — so each screen showed an
+  error alert instead of redirecting to login.
+
+Fix applied (EXPO only):
+  Added 401 handler to the response interceptor in api.ts:
+    SecureStore.deleteItemAsync('jwt_token');
+    DeviceEventEmitter.emit('app-unauthenticated');
+  This clears the bad token and triggers App.tsx to set isAuthenticated = false,
+  which switches the navigator to the Login screen.
+
+Cross-platform status:
+  iOS — ALREADY FIXED: APIClient.swift lines 37-40 and 80 call
+        AuthManager.shared.logout() on 401 which sets @Published isAuthenticated = false.
+  Android — ALREADY HANDLED: Every screen receives onUnauthorized() callback
+            (NostiaNavigation.kt:128-134). Screens call it on response.code() == 401.
+
+BUG E0 — FriendsMapScreen: react-native-maps crashes Expo Go (RNMapsAirModule)
+================================================================================
+File:     src/screens/FriendsMapScreen.tsx
+Severity: HIGH [EXPO]
+Symptoms: [runtime not ready]: TurboModuleRegistry.getEnforcing:
+          'RNMapsAirModule' could not be found.
+
+Root cause:
+  react-native-maps requires native binary modules not bundled in Expo Go.
+
+Fix applied:
+  Removed react-native-maps entirely. Replaced MapView with a ScrollView-based
+  friend location list. A banner informs the user that the full map requires
+  a development build.

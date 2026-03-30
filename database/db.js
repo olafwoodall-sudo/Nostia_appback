@@ -297,6 +297,13 @@ function initializeDatabase() {
     // Column already exists
   }
 
+  // Add createdBy column to adventures if it doesn't exist
+  try {
+    db.exec(`ALTER TABLE adventures ADD COLUMN createdBy INTEGER REFERENCES users(id) ON DELETE SET NULL`);
+  } catch (e) {
+    // Column already exists
+  }
+
   // Push tokens table
   db.exec(`
     CREATE TABLE IF NOT EXISTS push_tokens (

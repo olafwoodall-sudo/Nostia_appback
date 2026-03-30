@@ -42,8 +42,9 @@ export default function CreatePostModal({ visible, onClose, onPostCreated }: Cre
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.7,
+      quality: 0.5,
       base64: true,
+      exif: false,
     });
     if (!result.canceled && result.assets[0].base64) {
       setImageData(`data:image/jpeg;base64,${result.assets[0].base64}`);
@@ -64,7 +65,8 @@ export default function CreatePostModal({ visible, onClose, onPostCreated }: Cre
       setImageData(null);
       onPostCreated();
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.error || 'Failed to create post');
+      const msg = error.response?.data?.error || 'Failed to create post';
+      Alert.alert('Error', msg, [{ text: 'OK', onPress: handleClose }]);
     } finally {
       setLoading(false);
     }

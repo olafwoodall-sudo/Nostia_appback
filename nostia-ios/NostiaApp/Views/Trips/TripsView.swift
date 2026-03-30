@@ -135,6 +135,7 @@ struct EditTripSheet: View {
     @State private var startDate: String
     @State private var endDate: String
     @State private var isSaving = false
+    @State private var validationError: String?
     @Environment(\.dismiss) private var dismiss
 
     init(trip: Trip, onSave: @escaping (String, String, String?, String?, String?) async -> Void) {
@@ -153,8 +154,16 @@ struct EditTripSheet: View {
                 VStack(spacing: 16) {
                     NostiaTextField(label: "Title *", placeholder: "Trip title", text: $title)
                     NostiaTextField(label: "Destination *", placeholder: "Destination", text: $destination)
-                    NostiaTextField(label: "Start Date", placeholder: "YYYY-MM-DD", text: $startDate)
-                    NostiaTextField(label: "End Date", placeholder: "YYYY-MM-DD", text: $endDate)
+                    NostiaTextField(label: "Start Date", placeholder: "YYYY-MM-DD", text: $startDate, keyboardType: .numberPad)
+                        .onChange(of: startDate) { newValue in
+                            let formatted = formatTripDate(newValue)
+                            if formatted != newValue { startDate = formatted }
+                        }
+                    NostiaTextField(label: "End Date", placeholder: "YYYY-MM-DD", text: $endDate, keyboardType: .numberPad)
+                        .onChange(of: endDate) { newValue in
+                            let formatted = formatTripDate(newValue)
+                            if formatted != newValue { endDate = formatted }
+                        }
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Description").font(.system(size: 14, weight: .semibold)).foregroundColor(Color(hex: "D1D5DB"))
                         TextEditor(text: $description)
@@ -163,6 +172,12 @@ struct EditTripSheet: View {
                             .cornerRadius(12)
                             .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.nostriaBorder, lineWidth: 1))
                             .foregroundColor(.white).scrollContentBackground(.hidden)
+                    }
+                    if let err = validationError {
+                        Text(err)
+                            .font(.footnote)
+                            .foregroundColor(.red)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
                 .padding(20)
@@ -176,6 +191,16 @@ struct EditTripSheet: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
+                        validationError = nil
+                        if !startDate.isEmpty && !isValidTripDate(startDate) {
+                            validationError = "Start date is not a valid date."; return
+                        }
+                        if !endDate.isEmpty && !isValidTripDate(endDate) {
+                            validationError = "End date is not a valid date."; return
+                        }
+                        if !startDate.isEmpty && !endDate.isEmpty && endDate < startDate {
+                            validationError = "End date must be on or after start date."; return
+                        }
                         isSaving = true
                         Task {
                             await onSave(title, destination, description.isEmpty ? nil : description,

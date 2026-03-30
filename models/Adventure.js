@@ -2,14 +2,14 @@ const db = require('../database/db');
 
 class Adventure {
   static create(adventureData) {
-    const { title, description, location, category, difficulty, imageUrl } = adventureData;
+    const { title, description, location, category, difficulty, imageUrl, createdBy } = adventureData;
 
     const stmt = db.prepare(`
-      INSERT INTO adventures (title, description, location, category, difficulty, imageUrl)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO adventures (title, description, location, category, difficulty, imageUrl, createdBy)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
 
-    const result = stmt.run(title, description, location, category, difficulty, imageUrl);
+    const result = stmt.run(title, description, location, category, difficulty, imageUrl, createdBy ?? null);
     return this.findById(result.lastInsertRowid);
   }
 

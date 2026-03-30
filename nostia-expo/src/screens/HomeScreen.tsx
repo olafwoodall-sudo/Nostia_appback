@@ -13,6 +13,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { DeviceEventEmitter } from 'react-native';
 import { authAPI, tripsAPI, eventsAPI, friendsAPI } from '../services/api';
 import { getCurrentLocation, requestLocationPermission, LocationData } from '../services/location';
 
@@ -119,7 +120,7 @@ export default function HomeScreen() {
         style: 'destructive',
         onPress: async () => {
           await authAPI.logout();
-          (navigation as any).replace('Login');
+          DeviceEventEmitter.emit('app-unauthenticated');
         },
       },
     ]);

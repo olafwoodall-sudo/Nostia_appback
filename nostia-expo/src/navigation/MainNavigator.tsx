@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { Animated, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
 // Import screens
 import HomeScreen from '../screens/HomeScreen';
@@ -88,14 +88,8 @@ export default function MainNavigator() {
             iconName = 'help-outline';
           }
 
-          // Animated icon with scale and opacity transitions
-          const scale = new Animated.Value(focused ? 1.1 : 1);
-          const opacity = new Animated.Value(focused ? 1 : 0.6);
-
           return (
-            <Animated.View style={{ transform: [{ scale }], opacity }}>
-              <Ionicons name={iconName} size={size} color={color} />
-            </Animated.View>
+            <Ionicons name={iconName} size={focused ? size * 1.1 : size} color={color} style={{ opacity: focused ? 1 : 0.6 }} />
           );
         },
         tabBarShowLabel: false,
@@ -150,6 +144,7 @@ export default function MainNavigator() {
         options={{
           headerTitle: 'Notifications',
           tabBarButton: () => null,
+          tabBarItemStyle: { display: 'none' },
         }}
         listeners={{
           tabPress: () => {
@@ -157,22 +152,22 @@ export default function MainNavigator() {
           },
         }}
       />
-      {userRole === 'admin' && (
-        <Tab.Screen
-          name="AnalyticsTab"
-          component={AnalyticsScreen}
-          options={{
-            headerTitle: 'Analytics Dashboard',
-            tabBarButton: () => null,
-          }}
-        />
-      )}
+      <Tab.Screen
+        name="AnalyticsTab"
+        component={AnalyticsScreen}
+        options={{
+          headerTitle: 'Analytics Dashboard',
+          tabBarButton: () => null,
+          tabBarItemStyle: { display: 'none' },
+        }}
+      />
       <Tab.Screen
         name="SettingsTab"
         component={PrivacyScreen}
         options={{
           headerTitle: 'Settings',
           tabBarButton: () => null,
+          tabBarItemStyle: { display: 'none' },
         }}
       />
     </Tab.Navigator>

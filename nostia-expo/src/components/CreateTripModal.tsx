@@ -9,6 +9,8 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +22,25 @@ interface CreateTripModalProps {
   onTripCreated: () => void;
 }
 
+// Auto-format numeric input into YYYY-MM-DD as the user types
+function formatDateInput(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+}
+
+function isValidDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [y, m, d] = value.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  return (
+    date.getFullYear() === y &&
+    date.getMonth() === m - 1 &&
+    date.getDate() === d
+  );
+}
+
 export default function CreateTripModal({ visible, onClose, onTripCreated }: CreateTripModalProps) {
   const [title, setTitle] = useState('');
   const [destination, setDestination] = useState('');
@@ -29,20 +50,32 @@ export default function CreateTripModal({ visible, onClose, onTripCreated }: Cre
   const [loading, setLoading] = useState(false);
 
   const handleCreate = async () => {
-    if (!title || !destination || !startDate || !endDate) {
+    if (!title.trim() || !destination.trim() || !startDate || !endDate) {
       Alert.alert('Missing Info', 'Please fill in all required fields');
+      return;
+    }
+    if (!isValidDate(startDate)) {
+      Alert.alert('Invalid Date', 'Start date is not a valid date. Use YYYY-MM-DD.');
+      return;
+    }
+    if (!isValidDate(endDate)) {
+      Alert.alert('Invalid Date', 'End date is not a valid date. Use YYYY-MM-DD.');
+      return;
+    }
+    if (new Date(endDate) < new Date(startDate)) {
+      Alert.alert('Invalid Date', 'End date must be on or after the start date.');
       return;
     }
 
     try {
       setLoading(true);
       await tripsAPI.create({
-        title,
-        destination,
-        description,
+        title: title.trim(),
+        destination: destination.trim(),
+        description: description.trim(),
         startDate,
         endDate,
-        itinerary: description || undefined,
+        itinerary: description.trim() || undefined,
       });
       Alert.alert('Success', 'Trip created successfully!');
       resetForm();
@@ -74,7 +107,10 @@ export default function CreateTripModal({ visible, onClose, onTripCreated }: Cre
       transparent={true}
       onRequestClose={handleClose}
     >
-      <View style={styles.modalOverlay}>
+      <KeyboardAvoidingView
+        style={styles.modalOverlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <View style={styles.modalContainer}>
           {/* Header */}
           <View style={styles.header}>
@@ -84,7 +120,12 @@ export default function CreateTripModal({ visible, onClose, onTripCreated }: Cre
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.content}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.contentContainer}
+          >
             {/* Title */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Title *</Text>
@@ -94,6 +135,7 @@ export default function CreateTripModal({ visible, onClose, onTripCreated }: Cre
                 placeholderTextColor="#6B7280"
                 value={title}
                 onChangeText={setTitle}
+                returnKeyType="next"
               />
             </View>
 
@@ -106,6 +148,7 @@ export default function CreateTripModal({ visible, onClose, onTripCreated }: Cre
                 placeholderTextColor="#6B7280"
                 value={destination}
                 onChangeText={setDestination}
+                returnKeyType="next"
               />
             </View>
 
@@ -118,7 +161,10 @@ export default function CreateTripModal({ visible, onClose, onTripCreated }: Cre
                   placeholder="YYYY-MM-DD"
                   placeholderTextColor="#6B7280"
                   value={startDate}
-                  onChangeText={setStartDate}
+                  onChangeText={(t) => setStartDate(formatDateInput(t))}
+                  keyboardType="numeric"
+                  maxLength={10}
+                  returnKeyType="next"
                 />
               </View>
               <View style={[styles.inputGroup, styles.dateInput]}>
@@ -128,12 +174,15 @@ export default function CreateTripModal({ visible, onClose, onTripCreated }: Cre
                   placeholder="YYYY-MM-DD"
                   placeholderTextColor="#6B7280"
                   value={endDate}
-                  onChangeText={setEndDate}
+                  onChangeText={(t) => setEndDate(formatDateInput(t))}
+                  keyboardType="numeric"
+                  maxLength={10}
+                  returnKeyType="next"
                 />
               </View>
             </View>
 
-            {/* Description / Itinerary */}
+            {/* Description */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Description / Itinerary</Text>
               <TextInput
@@ -182,7 +231,7 @@ export default function CreateTripModal({ visible, onClose, onTripCreated }: Cre
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -217,7 +266,11 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   content: {
+    flexGrow: 0,
+  },
+  contentContainer: {
     padding: 20,
+    paddingBottom: 8,
   },
   inputGroup: {
     marginBottom: 20,
@@ -251,6 +304,7 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
+    paddingTop: 12,
     gap: 12,
   },
   cancelButton: {

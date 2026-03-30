@@ -37,10 +37,11 @@ final class FriendsViewModel: ObservableObject {
             return
         }
         isSearching = true
-        searchPerformed = true
         do {
             searchResults = try await FriendsAPI.shared.searchUsers(searchQuery)
+            searchPerformed = true
         } catch {
+            searchPerformed = false
             errorMessage = error.localizedDescription
         }
         isSearching = false

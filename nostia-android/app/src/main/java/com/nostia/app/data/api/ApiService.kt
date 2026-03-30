@@ -74,6 +74,9 @@ interface ApiService {
         @Query("difficulty") difficulty: String? = null
     ): Response<List<Adventure>>
 
+    @POST("adventures")
+    suspend fun createAdventure(@Body request: CreateAdventureRequest): Response<Adventure>
+
     // ── Feed ──────────────────────────────────────────────────────────────────
 
     @GET("feed")

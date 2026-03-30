@@ -103,7 +103,11 @@ export default function SignupScreen() {
   };
 
   const handleSignupWithConsent = async (consent: { locationConsent: boolean; dataCollectionConsent: boolean }) => {
-    if (validateInputs()) return;
+    const validationError = validateInputs();
+    if (validationError) {
+      Alert.alert('Invalid Input', validationError);
+      return;
+    }
 
     setLoading(true);
     try {

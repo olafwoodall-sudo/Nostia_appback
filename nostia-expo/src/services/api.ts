@@ -25,10 +25,16 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-// Response interceptor for rate limiting and consent-required
+// Response interceptor for auth errors, rate limiting and consent-required
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.response?.status === 401) {
+      // Token is invalid or expired — clear it and redirect to login
+      SecureStore.deleteItemAsync('jwt_token');
+      const { DeviceEventEmitter } = require('react-native');
+      DeviceEventEmitter.emit('app-unauthenticated');
+    }
     if (error.response?.status === 429) {
       Alert.alert(
         'Too Many Requests',

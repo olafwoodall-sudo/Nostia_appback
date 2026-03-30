@@ -16,6 +16,8 @@ Do not use this folder as a production build target. For production, use `nostia
 ```bash
 npm install
 npx expo start
+That shit doesn't work on like 90% of wifi networks use instead:
+npx expo start --tunnel
 ```
 
 ---

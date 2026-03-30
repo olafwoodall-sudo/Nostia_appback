@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nostia.app.data.api.ApiService
 import com.nostia.app.data.api.models.Adventure
+import com.nostia.app.data.api.models.CreateAdventureRequest
 import com.nostia.app.data.api.models.CreatePostRequest
 import com.nostia.app.data.api.models.Post
 import com.nostia.app.ui.theme.NostiaBackground
@@ -76,10 +77,18 @@ fun AdventuresScreen(
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("Adventures", "Feed")
 
+    var showCreateAdventure by remember { mutableStateOf(false) }
+
     Scaffold(
         floatingActionButton = {
-            if (selectedTab == 1) {
-                FloatingActionButton(
+            when (selectedTab) {
+                0 -> FloatingActionButton(
+                    onClick = { showCreateAdventure = true },
+                    containerColor = NostiaPrimary
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = "New Adventure", tint = NostiaTextPrimary)
+                }
+                1 -> FloatingActionButton(
                     onClick = { /* handled inside FeedTab */ },
                     containerColor = NostiaPrimary
                 ) {
@@ -125,6 +134,14 @@ fun AdventuresScreen(
             when (selectedTab) {
                 0 -> AdventuresTab(apiService = apiService, onUnauthorized = onUnauthorized)
                 1 -> FeedTab(apiService = apiService, onUnauthorized = onUnauthorized)
+            }
+
+            if (showCreateAdventure) {
+                CreateAdventureDialog(
+                    apiService = apiService,
+                    onDismiss = { showCreateAdventure = false },
+                    onCreated = { showCreateAdventure = false }
+                )
             }
         }
     }
@@ -394,6 +411,166 @@ private fun PostCard(
             }
         }
     }
+}
+
+@Composable
+private fun CreateAdventureDialog(
+    apiService: ApiService,
+    onDismiss: () -> Unit,
+    onCreated: () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    var title by remember { mutableStateOf("") }
+    var location by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var category by remember { mutableStateOf("") }
+    var difficulty by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+
+    val categories = listOf("hiking", "climbing", "water-sports", "camping", "cycling", "other")
+    val difficulties = listOf("easy", "moderate", "hard", "expert")
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("New Adventure", color = NostiaTextPrimary, fontWeight = FontWeight.Bold) },
+        text = {
+            androidx.compose.foundation.lazy.LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                item {
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        label = { Text("Title *") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = NostiaPrimary,
+                            unfocusedBorderColor = NostiaBorder,
+                            focusedLabelColor = NostiaPrimary,
+                            unfocusedLabelColor = NostiaTextSecondary,
+                            focusedTextColor = NostiaTextPrimary,
+                            unfocusedTextColor = NostiaTextPrimary,
+                            cursorColor = NostiaPrimary
+                        )
+                    )
+                }
+                item {
+                    OutlinedTextField(
+                        value = location,
+                        onValueChange = { location = it },
+                        label = { Text("Location *") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = NostiaPrimary,
+                            unfocusedBorderColor = NostiaBorder,
+                            focusedLabelColor = NostiaPrimary,
+                            unfocusedLabelColor = NostiaTextSecondary,
+                            focusedTextColor = NostiaTextPrimary,
+                            unfocusedTextColor = NostiaTextPrimary,
+                            cursorColor = NostiaPrimary
+                        )
+                    )
+                }
+                item {
+                    OutlinedTextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        label = { Text("Description") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2,
+                        maxLines = 4,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = NostiaPrimary,
+                            unfocusedBorderColor = NostiaBorder,
+                            focusedLabelColor = NostiaPrimary,
+                            unfocusedLabelColor = NostiaTextSecondary,
+                            focusedTextColor = NostiaTextPrimary,
+                            unfocusedTextColor = NostiaTextPrimary,
+                            cursorColor = NostiaPrimary
+                        )
+                    )
+                }
+                item {
+                    Text("Category", color = NostiaTextSecondary, fontSize = 12.sp)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        items(categories) { cat ->
+                            FilterChip(
+                                selected = category == cat,
+                                onClick = { category = if (category == cat) "" else cat },
+                                label = { Text(cat.replaceFirstChar { it.uppercase() }) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = NostiaPrimary,
+                                    selectedLabelColor = NostiaTextPrimary,
+                                    containerColor = NostiaSurface,
+                                    labelColor = NostiaTextSecondary
+                                )
+                            )
+                        }
+                    }
+                }
+                item {
+                    Text("Difficulty", color = NostiaTextSecondary, fontSize = 12.sp)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        difficulties.forEach { diff ->
+                            FilterChip(
+                                selected = difficulty == diff,
+                                onClick = { difficulty = if (difficulty == diff) "" else diff },
+                                label = { Text(diff.replaceFirstChar { it.uppercase() }) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = NostiaPrimary,
+                                    selectedLabelColor = NostiaTextPrimary,
+                                    containerColor = NostiaSurface,
+                                    labelColor = NostiaTextSecondary
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (title.isBlank() || location.isBlank()) return@Button
+                    scope.launch {
+                        isLoading = true
+                        try {
+                            val response = apiService.createAdventure(
+                                CreateAdventureRequest(
+                                    title = title.trim(),
+                                    location = location.trim(),
+                                    description = description.trim().ifBlank { null },
+                                    category = category.ifBlank { null },
+                                    difficulty = difficulty.ifBlank { null }
+                                )
+                            )
+                            if (response.isSuccessful) onCreated()
+                        } catch (_: Exception) {
+                        } finally {
+                            isLoading = false
+                        }
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = NostiaPrimary),
+                enabled = !isLoading && title.isNotBlank() && location.isNotBlank()
+            ) {
+                if (isLoading) CircularProgressIndicator(
+                    color = NostiaTextPrimary,
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(18.dp)
+                )
+                else Text("Create", color = NostiaTextPrimary)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel", color = NostiaTextSecondary) }
+        },
+        containerColor = NostiaSurface
+    )
 }
 
 @Composable

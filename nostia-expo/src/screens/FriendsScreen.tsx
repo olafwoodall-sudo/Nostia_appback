@@ -63,11 +63,12 @@ export default function FriendsScreen() {
 
     try {
       setSearchLoading(true);
-      setSearchPerformed(true);
       const results = await friendsAPI.searchUsers(searchQuery);
       setSearchResults(results);
+      setSearchPerformed(true);
     } catch (error: any) {
-      Alert.alert('Error', 'Failed to search users');
+      setSearchPerformed(false);
+      Alert.alert('Error', error.response?.data?.error || 'Failed to search users');
     } finally {
       setSearchLoading(false);
     }

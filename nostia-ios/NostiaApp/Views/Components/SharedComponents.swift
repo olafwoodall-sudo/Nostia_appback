@@ -142,6 +142,32 @@ struct ConsentToggle: View {
     }
 }
 
+// MARK: - Date helpers (used by trip sheets)
+
+private func formatTripDate(_ raw: String) -> String {
+    let digits = String(raw.filter { $0.isNumber }.prefix(8))
+    switch digits.count {
+    case 0...4: return digits
+    case 5...6: return "\(digits.prefix(4))-\(digits.dropFirst(4))"
+    default:
+        return "\(digits.prefix(4))-\(digits.dropFirst(4).prefix(2))-\(digits.dropFirst(6))"
+    }
+}
+
+private func isValidTripDate(_ value: String) -> Bool {
+    guard value.count == 10 else { return false }
+    let parts = value.split(separator: "-")
+    guard parts.count == 3,
+          let y = Int(parts[0]), let m = Int(parts[1]), let d = Int(parts[2]) else { return false }
+    var comps = DateComponents()
+    comps.year = y; comps.month = m; comps.day = d
+    return Calendar.current.date(from: comps).map {
+        Calendar.current.component(.year, from: $0) == y &&
+        Calendar.current.component(.month, from: $0) == m &&
+        Calendar.current.component(.day, from: $0) == d
+    } ?? false
+}
+
 // MARK: - Create Trip Sheet
 
 struct CreateTripSheet: View {
@@ -153,6 +179,7 @@ struct CreateTripSheet: View {
     @State private var startDate = ""
     @State private var endDate = ""
     @State private var isSaving = false
+    @State private var validationError: String?
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -161,8 +188,16 @@ struct CreateTripSheet: View {
                 VStack(spacing: 16) {
                     NostiaTextField(label: "Title *", placeholder: "Trip title", text: $title)
                     NostiaTextField(label: "Destination *", placeholder: "Where are you going?", text: $destination)
-                    NostiaTextField(label: "Start Date", placeholder: "YYYY-MM-DD", text: $startDate)
-                    NostiaTextField(label: "End Date", placeholder: "YYYY-MM-DD", text: $endDate)
+                    NostiaTextField(label: "Start Date *", placeholder: "YYYY-MM-DD", text: $startDate, keyboardType: .numberPad)
+                        .onChange(of: startDate) { newValue in
+                            let formatted = formatTripDate(newValue)
+                            if formatted != newValue { startDate = formatted }
+                        }
+                    NostiaTextField(label: "End Date *", placeholder: "YYYY-MM-DD", text: $endDate, keyboardType: .numberPad)
+                        .onChange(of: endDate) { newValue in
+                            let formatted = formatTripDate(newValue)
+                            if formatted != newValue { endDate = formatted }
+                        }
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Description").font(.system(size: 14, weight: .semibold))
                             .foregroundColor(Color(hex: "D1D5DB"))
@@ -171,6 +206,12 @@ struct CreateTripSheet: View {
                             .background(Color.nostiaCard).cornerRadius(12)
                             .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.nostriaBorder, lineWidth: 1))
                             .foregroundColor(.white).scrollContentBackground(.hidden)
+                    }
+                    if let err = validationError {
+                        Text(err)
+                            .font(.footnote)
+                            .foregroundColor(.red)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
                 .padding(20)
@@ -184,6 +225,16 @@ struct CreateTripSheet: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
+                        validationError = nil
+                        if !startDate.isEmpty && !isValidTripDate(startDate) {
+                            validationError = "Start date is not a valid date."; return
+                        }
+                        if !endDate.isEmpty && !isValidTripDate(endDate) {
+                            validationError = "End date is not a valid date."; return
+                        }
+                        if !startDate.isEmpty && !endDate.isEmpty && endDate < startDate {
+                            validationError = "End date must be on or after start date."; return
+                        }
                         isSaving = true
                         Task {
                             await onSave(title, destination,

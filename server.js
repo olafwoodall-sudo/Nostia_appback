@@ -146,7 +146,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
   }
 });
 
-app.use(express.json({ limit: '10kb' }));
+app.use(express.json({ limit: '10mb' }));
 
 // ==================== LOGGING MIDDLEWARE ====================
 
@@ -994,14 +994,10 @@ app.get('/api/adventures/:id', (req, res) => {
   }
 });
 
-// Create adventure (admin only)
+// Create adventure (any authenticated user)
 app.post('/api/adventures', authenticateToken, (req, res) => {
   try {
-    const user = User.findById(req.user.id);
-    if (!user || user.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
-    const adventure = Adventure.create(req.body);
+    const adventure = Adventure.create({ ...req.body, createdBy: req.user.id });
     res.status(201).json(adventure);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -1916,6 +1912,9 @@ app.use((req, res) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
+  if (err.status === 413 || err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Image too large. Please use a smaller photo.' });
+  }
   console.error('Global error:', err);
   res.status(500).json({ error: 'Internal server error' });
 });
