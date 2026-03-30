@@ -81,18 +81,18 @@ export default function HomeScreen() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [userData, tripsData, eventsData, friendsData, feedData] = await Promise.all([
+      const [userResult, tripsResult, eventsResult, friendsResult, feedResult] = await Promise.allSettled([
         authAPI.getMe(),
         tripsAPI.getAll(),
         eventsAPI.getUpcoming(5),
         friendsAPI.getAll(),
         feedAPI.getUserFeed(),
       ]);
-      setUser(userData);
-      setTrips(tripsData);
-      setEvents(eventsData);
-      setFriends(friendsData);
-      setFeed(feedData);
+      if (userResult.status === 'fulfilled') setUser(userResult.value);
+      if (tripsResult.status === 'fulfilled') setTrips(tripsResult.value);
+      if (eventsResult.status === 'fulfilled') setEvents(eventsResult.value);
+      if (friendsResult.status === 'fulfilled') setFriends(friendsResult.value);
+      if (feedResult.status === 'fulfilled') setFeed(feedResult.value);
     } catch (error: any) {
       Alert.alert('Error', 'Failed to load home data');
     } finally {

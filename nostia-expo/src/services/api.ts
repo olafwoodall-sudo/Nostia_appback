@@ -29,25 +29,25 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Token is invalid or expired — clear it and redirect to login
-      SecureStore.deleteItemAsync('jwt_token');
-      const { DeviceEventEmitter } = require('react-native');
-      DeviceEventEmitter.emit('app-unauthenticated');
+    const status = error.response?.status;
+    if (status === 401 || status === 403) {
+      const data = error.response?.data;
+      if (data?.consentRequired) {
+        // Redirect to consent screen rather than logging out
+        const { DeviceEventEmitter } = require('react-native');
+        DeviceEventEmitter.emit('consent-required', data);
+      } else {
+        // Token missing, invalid, or expired — clear it and redirect to login
+        SecureStore.deleteItemAsync('jwt_token');
+        const { DeviceEventEmitter } = require('react-native');
+        DeviceEventEmitter.emit('app-unauthenticated');
+      }
     }
-    if (error.response?.status === 429) {
+    if (status === 429) {
       Alert.alert(
         'Too Many Requests',
         'Please wait a moment and try again.'
       );
-    }
-    if (
-      error.response?.status === 403 &&
-      error.response?.data?.consentRequired
-    ) {
-      // Emit a global event so navigation can redirect to consent screen
-      const { DeviceEventEmitter } = require('react-native');
-      DeviceEventEmitter.emit('consent-required', error.response.data);
     }
     return Promise.reject(error);
   }
