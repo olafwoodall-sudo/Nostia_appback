@@ -110,10 +110,11 @@ export default function CommentsModal({ visible, postId, onClose, onCommentAdded
   );
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal visible={visible} animationType="slide">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
+        keyboardVerticalOffset={0}
       >
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Comments</Text>
@@ -132,6 +133,7 @@ export default function CommentsModal({ visible, postId, onClose, onCommentAdded
             renderItem={renderComment}
             keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={styles.listContent}
+            keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <Ionicons name="chatbubble-outline" size={48} color="#6B7280" />

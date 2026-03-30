@@ -30,18 +30,19 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status;
-    if (status === 401 || status === 403) {
-      const data = error.response?.data;
-      if (data?.consentRequired) {
-        // Redirect to consent screen rather than logging out
-        const { DeviceEventEmitter } = require('react-native');
-        DeviceEventEmitter.emit('consent-required', data);
-      } else {
-        // Token missing, invalid, or expired — clear it and redirect to login
-        SecureStore.deleteItemAsync('jwt_token');
-        const { DeviceEventEmitter } = require('react-native');
-        DeviceEventEmitter.emit('app-unauthenticated');
-      }
+    const errMsg = error.response?.data?.error;
+    const data = error.response?.data;
+    // Only log out on actual auth failures, not permission denials (also 403)
+    const isAuthFailure =
+      status === 401 ||
+      (status === 403 && (errMsg === 'Invalid or expired token' || errMsg === 'Access token required'));
+    if (isAuthFailure) {
+      SecureStore.deleteItemAsync('jwt_token');
+      const { DeviceEventEmitter } = require('react-native');
+      DeviceEventEmitter.emit('app-unauthenticated');
+    } else if (status === 403 && data?.consentRequired) {
+      const { DeviceEventEmitter } = require('react-native');
+      DeviceEventEmitter.emit('consent-required', data);
     }
     if (status === 429) {
       Alert.alert(
