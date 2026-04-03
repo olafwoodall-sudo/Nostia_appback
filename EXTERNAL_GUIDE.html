@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nostia — External Work Guidance Sheet</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #1a1a1a; background: #fff; padding: 40px; max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 700; color: #111; border-bottom: 3px solid #4f46e5; padding-bottom: 10px; margin-bottom: 6px; }
+  .subtitle { color: #555; font-size: 12px; margin-bottom: 30px; }
+  h2 { font-size: 15px; font-weight: 700; color: #fff; background: #4f46e5; padding: 8px 14px; border-radius: 6px; margin: 28px 0 14px; page-break-after: avoid; }
+  h2.critical { background: #dc2626; }
+  h2.high { background: #d97706; }
+  h2.medium { background: #059669; }
+  h2.stores { background: #7c3aed; }
+  h2.ref { background: #0284c7; }
+  h3 { font-size: 13px; font-weight: 700; color: #1e1b4b; margin: 18px 0 6px; border-left: 4px solid #4f46e5; padding-left: 10px; page-break-after: avoid; }
+  h3.critical { border-left-color: #dc2626; color: #7f1d1d; }
+  h3.high { border-left-color: #d97706; color: #78350f; }
+  h3.medium { border-left-color: #059669; color: #064e3b; }
+  p { margin-bottom: 8px; color: #333; }
+  ul, ol { margin: 6px 0 10px 20px; }
+  li { margin-bottom: 4px; }
+  code { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 3px; padding: 1px 5px; font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace; font-size: 11.5px; color: #1e293b; }
+  pre { background: #0f172a; color: #e2e8f0; border-radius: 8px; padding: 14px 16px; font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace; font-size: 11.5px; line-height: 1.7; overflow-x: auto; margin: 8px 0 12px; }
+  pre code { background: none; border: none; padding: 0; color: inherit; font-size: inherit; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0 14px; font-size: 12px; }
+  th { background: #f1f5f9; text-align: left; padding: 8px 10px; font-weight: 600; border: 1px solid #e2e8f0; }
+  td { padding: 7px 10px; border: 1px solid #e2e8f0; vertical-align: top; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-right: 4px; }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+  .badge-yellow { background: #fef3c7; color: #92400e; }
+  .badge-green { background: #d1fae5; color: #065f46; }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+  .callout { border-radius: 6px; padding: 10px 14px; margin: 10px 0; font-size: 12px; }
+  .callout-red { background: #fff1f2; border-left: 4px solid #dc2626; }
+  .callout-yellow { background: #fffbeb; border-left: 4px solid #d97706; }
+  .callout-blue { background: #eff6ff; border-left: 4px solid #3b82f6; }
+  .checklist { list-style: none; margin-left: 0; }
+  .checklist li { padding: 5px 0 5px 28px; position: relative; border-bottom: 1px solid #f1f5f9; }
+  .checklist li::before { content: "☐"; position: absolute; left: 4px; font-size: 14px; color: #94a3b8; }
+  @media print {
+    body { padding: 20px; font-size: 11.5px; }
+    h2 { page-break-inside: avoid; }
+    h3 { page-break-after: avoid; }
+    pre { page-break-inside: avoid; white-space: pre-wrap; word-break: break-all; }
+    .no-print { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="no-print" style="background:#eff6ff;border:1px solid #93c5fd;border-radius:8px;padding:12px 16px;margin-bottom:24px;font-size:12px;color:#1e40af;">
+  <strong>To save as PDF:</strong> Press <strong>Ctrl+P</strong> (Windows) or <strong>Cmd+P</strong> (Mac) → change destination to <strong>"Save as PDF"</strong> → Save
+</div>
+
+<h1>Nostia App — External Work Guidance Sheet</h1>
+<p class="subtitle">Last updated: 2026-04-03 &nbsp;|&nbsp; Tasks requiring action outside the codebase — accounts, dashboards, terminals &nbsp;|&nbsp; See <code>EXTERNAL_TODO.md</code> for the checklist version</p>
+
+<!-- ===================== SECTION 1 ===================== -->
+<h2 class="critical">1. BLOCKING — Nothing ships without these</h2>
+
+<h3 class="critical">1A. Audit Git History for Committed Secrets</h3>
+<p><strong>Why:</strong> If <code>.env</code> was ever committed, all credentials are compromised regardless of what the file contains today.</p>
+<pre><code># Run from c:\nostia-app\
+git log --all --full-history --oneline -- .env
+git log --all --full-history --oneline -- "**/.env"</code></pre>
+<div class="callout callout-red">
+  If any output appears: <strong>immediately rotate</strong> JWT_SECRET, STRIPE_SECRET_KEY, and STRIPE_WEBHOOK_SECRET in both Stripe Dashboard and DigitalOcean. Git history rewriting alone is not sufficient — treat keys as burned.
+</div>
+
+<h3 class="critical">1B. DigitalOcean — Set Secret Environment Variables</h3>
+<p><strong>Why:</strong> The <code>.env</code> file must not be the live source of truth in production. Secrets belong in DO as encrypted vars.</p>
+<p><strong>Where:</strong> DigitalOcean Dashboard → Apps → <code>nostia</code> → Settings → Environment Variables</p>
+<table>
+  <tr><th>Variable</th><th>Type</th><th>Value</th></tr>
+  <tr><td><code>JWT_SECRET</code></td><td><span class="badge badge-red">Encrypted</span></td><td>Your current <code>.env</code> value</td></tr>
+  <tr><td><code>STRIPE_SECRET_KEY</code></td><td><span class="badge badge-red">Encrypted</span></td><td>Your current <code>.env</code> value (<code>sk_live_51T6E...</code>)</td></tr>
+  <tr><td><code>STRIPE_WEBHOOK_SECRET</code></td><td><span class="badge badge-red">Encrypted</span></td><td>Your current <code>.env</code> value (<code>whsec_HNNw...</code>)</td></tr>
+  <tr><td><code>NODE_ENV</code></td><td><span class="badge badge-blue">Plain</span></td><td><code>production</code></td></tr>
+  <tr><td><code>ALLOWED_ORIGINS</code></td><td><span class="badge badge-blue">Plain</span></td><td><code>https://king-prawn-app-44tki.ondigitalocean.app</code></td></tr>
+</table>
+<p>After saving → click <strong>Deploy</strong> → verify <code>GET /health</code> returns 200.</p>
+
+<h3 class="critical">1C. DigitalOcean — Persistent Database Volume</h3>
+<p><strong>Why:</strong> DigitalOcean App Platform uses ephemeral storage. Every redeploy <strong>wipes the SQLite database</strong>. This is why user data disappears on every push.</p>
+<p><strong>Where:</strong> DigitalOcean Dashboard → Apps → <code>nostia</code> → Settings → Storage</p>
+<ol>
+  <li>Click <strong>Add Volume</strong></li>
+  <li>Mount path: <code>/app/database</code></li>
+  <li>Size: 5–10 GB</li>
+  <li>Save → Redeploy</li>
+</ol>
+<div class="callout callout-yellow">
+  <strong>Longer term:</strong> Consider migrating to DigitalOcean Managed PostgreSQL (~$15/mo) for backups, point-in-time recovery, and no ephemeral storage risk. Requires migrating the Node backend from <code>better-sqlite3</code> to the <code>pg</code> package.
+</div>
+
+<h3 class="critical">1D. Android Release Keystore</h3>
+<p><strong>Why:</strong> <code>nostia-release.jks</code> does not exist. No signed APK/AAB can be built without it, and Play Store requires it.</p>
+<div class="callout callout-red">
+  <strong>CRITICAL:</strong> Back this file up permanently. Losing it locks you out of Play Store updates forever — there is no recovery.
+</div>
+<pre><code># Run once in c:\nostia-app\
+keytool -genkey -v `
+  -keystore nostia-release.jks `
+  -alias nostia `
+  -keyalg RSA -keysize 2048 `
+  -validity 10000</code></pre>
+<p>When prompted: enter your name/org/location, choose a strong keystore password and key password.</p>
+<p>After generating:</p>
+<ol>
+  <li>Update <code>nostia-android/local.properties</code>:
+    <pre><code>KEYSTORE_FILE=../nostia-release.jks
+KEYSTORE_PASSWORD=&lt;your_password&gt;
+KEY_ALIAS=nostia
+KEY_PASSWORD=&lt;your_password&gt;</code></pre>
+  </li>
+  <li><strong>Back up <code>nostia-release.jks</code></strong> to: password manager + encrypted cloud + physical USB</li>
+  <li>Get the SHA-1 fingerprint (needed for step 1E):
+    <pre><code>keytool -list -v -keystore nostia-release.jks -alias nostia
+# Copy the SHA1: line from the output</code></pre>
+  </li>
+</ol>
+
+<h3 class="critical">1E. Google Maps API Key</h3>
+<p><strong>Why:</strong> Both <code>nostia-expo/app.json</code> (line 42) and <code>nostia-android/local.properties</code> contain placeholder values. The Friends Map screen will crash at runtime.</p>
+<ol>
+  <li>Go to <a href="https://console.cloud.google.com">console.cloud.google.com</a></li>
+  <li>Create/select a project → <strong>Enable APIs</strong> → enable <strong>Maps SDK for Android</strong></li>
+  <li><strong>Credentials → Create Credentials → API Key</strong></li>
+  <li>Restrict the key:
+    <ul>
+      <li>Application restrictions: <strong>Android apps</strong></li>
+      <li>Package name: <code>com.nostia.app</code></li>
+      <li>SHA-1 fingerprint: from step 1D above</li>
+    </ul>
+  </li>
+  <li>Replace placeholders in two files:
+    <ul>
+      <li><code>nostia-expo/app.json</code> line 42: replace <code>PLACEHOLDER_GOOGLE_MAPS_API_KEY</code></li>
+      <li><code>nostia-android/local.properties</code>: replace <code>your_google_maps_key</code></li>
+    </ul>
+  </li>
+</ol>
+
+<h3 class="critical">1F. iOS Bundle ID &amp; Apple Developer Account</h3>
+<p><strong>Why:</strong> <code>nostia-expo/app.json</code> line 17 contains <code>PLACEHOLDER_IOS_BUNDLE_ID</code>. No iOS build is possible without a registered bundle ID and developer account.</p>
+<ol>
+  <li>Enroll at <a href="https://developer.apple.com/programs/enroll/">developer.apple.com/programs/enroll</a> ($99/year) if not already done</li>
+  <li>Go to <a href="https://developer.apple.com/account/resources/identifiers/list">developer.apple.com → Identifiers</a></li>
+  <li>Click <strong>+</strong> → App IDs → App → Bundle ID: <code>com.nostia.app</code> (explicit)</li>
+  <li>Enable capabilities: <strong>Maps</strong>, <strong>Push Notifications</strong></li>
+  <li>Register</li>
+  <li>Update <code>nostia-expo/app.json</code> line 17: <code>"bundleIdentifier": "com.nostia.app"</code></li>
+  <li>In Xcode: select target → <strong>Signing &amp; Capabilities</strong> → set Team → enable auto-manage signing</li>
+</ol>
+
+<!-- ===================== SECTION 2 ===================== -->
+<h2 class="high">2. HIGH PRIORITY — Fix before store submission</h2>
+
+<h3 class="high">2A. Stripe Webhook Verification</h3>
+<p><strong>Why:</strong> The backend handles disputed charges and failed payments via webhooks. If the events aren't enabled, these handlers never fire.</p>
+<p><strong>Where:</strong> <a href="https://dashboard.stripe.com/webhooks">dashboard.stripe.com/webhooks</a></p>
+<ol>
+  <li>Find or create endpoint: <code>https://king-prawn-app-44tki.ondigitalocean.app/api/stripe/webhook</code></li>
+  <li>Verify these events are enabled:
+    <ul>
+      <li><code>payment_intent.succeeded</code></li>
+      <li><code>payment_intent.payment_failed</code></li>
+      <li><code>charge.dispute.created</code></li>
+      <li><code>transfer.created</code></li>
+    </ul>
+  </li>
+  <li>Confirm the Signing Secret matches the value in DigitalOcean env vars</li>
+</ol>
+
+<h3 class="high">2B. SSL Certificate Pinning — Android</h3>
+<p><strong>Why:</strong> Without pinning, a MITM on a user's network can intercept JWT tokens and payment intents.</p>
+<p>Step 1 — Get the certificate pin hash (run in Git Bash or WSL):</p>
+<pre><code>openssl s_client -connect king-prawn-app-44tki.ondigitalocean.app:443 2>/dev/null \
+  | openssl x509 -pubkey -noout \
+  | openssl pkey -pubin -outform der \
+  | openssl dgst -sha256 -binary \
+  | base64</code></pre>
+<p>Step 2 — Add to OkHttp client in <code>nostia-android/</code>:</p>
+<pre><code>val pinner = CertificatePinner.Builder()
+  .add("king-prawn-app-44tki.ondigitalocean.app", "sha256/&lt;hash_from_above&gt;")
+  .build()
+OkHttpClient.Builder().certificatePinner(pinner).build()</code></pre>
+<div class="callout callout-yellow">If the DigitalOcean domain or SSL certificate ever changes, you must ship a new app version with an updated pin. Document the hash somewhere safe.</div>
+
+<h3 class="high">2C. SSL Certificate Pinning — iOS</h3>
+<p><strong>Why:</strong> <code>nostia-ios/NostiaApp/Network/APIClient.swift</code> uses <code>URLSession.shared</code> with no pinning.</p>
+<p>Step 1 — Use the same hash from step 2B.</p>
+<p>Step 2 — In Xcode: <strong>File → Add Package Dependencies</strong> → <code>https://github.com/datatheorem/TrustKit</code></p>
+<p>Step 3 — Configure in <code>NostiaApp.swift</code> before app launch:</p>
+<pre><code>import TrustKit
+TrustKit.initSharedInstance(withConfiguration: [
+  kTSKPinnedDomains: [
+    "king-prawn-app-44tki.ondigitalocean.app": [
+      kTSKPublicKeyHashes: ["&lt;hash_from_step_2B&gt;"],
+      kTSKEnforcePinning: true
+    ]
+  ]
+])</code></pre>
+
+<h3 class="high">2D. Jailbreak Detection — iOS</h3>
+<p><strong>Where:</strong> <code>nostia-ios/NostiaApp/NostiaApp.swift</code></p>
+<ol>
+  <li>In Xcode: <strong>File → Add Package Dependencies</strong> → <code>https://github.com/securing/IOSSecuritySuite</code></li>
+  <li>Add at app launch:
+    <pre><code>import IOSSecuritySuite
+if IOSSecuritySuite.amIJailbroken() {
+  // Warn user — do NOT hard-block (accessibility concerns)
+  // Disable Vault / payment features only
+}</code></pre>
+  </li>
+</ol>
+
+<h3 class="high">2E. Root Detection — Android</h3>
+<p><strong>Where:</strong> Application class in <code>nostia-android/</code></p>
+<ol>
+  <li>Add to <code>app/build.gradle</code>:
+    <pre><code>implementation 'com.scottyab:rootbeer-lib:0.1.0'</code></pre>
+  </li>
+  <li>Add in <code>Application.onCreate()</code>:
+    <pre><code>val rootBeer = RootBeer(this)
+if (rootBeer.isDeviceRooted) {
+    // Log event, warn user, disable Vault/payment features
+}</code></pre>
+  </li>
+</ol>
+
+<h3 class="high">2F. JWT Refresh Token Architecture</h3>
+<p><strong>Why:</strong> Current JWTs last 7 days. Financial apps should use 15–60 min access tokens + long-lived refresh tokens.</p>
+<p>Required changes:</p>
+<ol>
+  <li><strong>Backend</strong> (<code>middleware/auth.js</code>, <code>server.js</code>): new <code>POST /api/auth/refresh</code> endpoint; new <code>refresh_tokens</code> table; access token TTL reduced to 15–60 min; refresh token TTL 30 days with rotation</li>
+  <li><strong>Expo</strong> (<code>api.ts</code>): intercept 401 → call refresh → retry original → logout on refresh failure</li>
+  <li><strong>iOS</strong> (<code>APIClient.swift</code>): same pattern</li>
+  <li><strong>Android</strong>: same pattern in Retrofit/OkHttp interceptor</li>
+</ol>
+<div class="callout callout-yellow">This is an architectural change. Plan a maintenance window and test all three clients before deploying.</div>
+
+<h3 class="high">2G. Expo Project ID for Push Notifications</h3>
+<p><strong>Why:</strong> <code>nostia-expo/src/services/notifications.ts</code> contains <code>projectId: 'your-project-id'</code>. Push notifications silently fail on production builds.</p>
+<ol>
+  <li>Go to <a href="https://expo.dev">expo.dev</a> → sign in → find or create your project</li>
+  <li>Copy the Project ID (format: <code>xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</code>)</li>
+  <li>Update <code>nostia-expo/src/services/notifications.ts</code> — replace <code>'your-project-id'</code></li>
+</ol>
+
+<h3 class="high">2H. npm Security Audit — Expo App</h3>
+<pre><code>cd c:\nostia-app\nostia-expo
+npm audit --audit-level=high
+npm audit fix</code></pre>
+<p>Fix or document all HIGH and CRITICAL findings before release. Review remaining issues manually.</p>
+
+<h3 class="high">2I. Android Dependency Audit</h3>
+<pre><code>cd c:\nostia-app\nostia-android
+./gradlew dependencyUpdates</code></pre>
+<p>Focus on: Stripe Android SDK, OkHttp, Retrofit. Check <a href="https://snyk.io">snyk.io</a> for known CVEs.</p>
+
+<!-- ===================== SECTION 3 ===================== -->
+<h2 class="stores">3. APP STORE SETUP</h2>
+
+<h3>3A. Apple App Store Connect</h3>
+<ol>
+  <li>Go to <a href="https://appstoreconnect.apple.com">appstoreconnect.apple.com</a></li>
+  <li><strong>My Apps → + → New App</strong>
+    <ul>
+      <li>Platform: iOS, Bundle ID: <code>com.nostia.app</code>, SKU: <code>nostia-ios-1</code></li>
+    </ul>
+  </li>
+  <li>Fill in: description, keywords, privacy policy URL, support URL</li>
+  <li>Screenshots required: 6.7", 6.5", 5.5" iPhone (iPad optional)</li>
+  <li>Complete <strong>App Privacy</strong> section: declare location, camera/photos, financial data</li>
+  <li>Age rating: mark financial transactions present → typically 12+</li>
+  <li>In Xcode: <strong>Product → Archive → Distribute App</strong> → upload to App Store Connect</li>
+</ol>
+
+<h3>3B. Google Play Console</h3>
+<ol>
+  <li>Go to <a href="https://play.google.com/console">play.google.com/console</a> ($25 one-time)</li>
+  <li><strong>Create app</strong> → fill in store listing, add screenshots</li>
+  <li>Build release AAB in Android Studio: <strong>Build → Generate Signed Bundle/APK → Android App Bundle</strong> → use <code>nostia-release.jks</code> from step 1D</li>
+  <li>Upload to <strong>Internal testing</strong> track first → test on real devices → promote to Production</li>
+  <li>Complete <strong>Data safety</strong>: declare location, financial info, contacts</li>
+  <li>Complete <strong>Content rating</strong> questionnaire: financial transactions → typically 12+</li>
+</ol>
+
+<!-- ===================== SECTION 4 ===================== -->
+<h2 class="medium">4. MEDIUM PRIORITY</h2>
+
+<h3 class="medium">4A. EAS Code Signing (Expo OTA Updates)</h3>
+<p><strong>Only needed if you plan to push JavaScript updates without going through the app store review process.</strong></p>
+<pre><code>cd c:\nostia-app\nostia-expo
+npm install -g eas-cli
+eas login
+eas update:configure
+eas credentials</code></pre>
+<p>This generates a code signing certificate. Without it, a MITM can push arbitrary JS to all your users via the OTA channel.</p>
+
+<h3 class="medium">4B. Inactivity Timeout</h3>
+<p><strong>Why:</strong> The app handles real Stripe payments. If a user walks away from their unlocked phone, anyone can approve a vault expense.</p>
+<p>On all three platforms: after 15 minutes in background, require biometric or PIN re-authentication before accessing Vault or initiating any payment. Does not need to be a full logout.</p>
+
+<h3 class="medium">4C. Privacy Policy</h3>
+<p><strong>Why:</strong> Required by both app stores, and legally required by GDPR/CCPA for apps collecting location + analytics data.</p>
+<p>Must cover:</p>
+<ul>
+  <li>Data collected: name, email, location, photos, financial transactions</li>
+  <li>How it is used: no sale to third parties, analytics only within app</li>
+  <li>How to request deletion: already implemented in backend at <code>DELETE /api/user</code></li>
+  <li>Contact email</li>
+  <li>Data retention: 90 days (matches current <code>.env</code> setting)</li>
+</ul>
+<p>Publish at a stable public URL (GitHub Pages or custom domain). Link from both app store listings and in-app Settings screens.</p>
+
+<h3 class="medium">4D. Custom Domain (Optional)</h3>
+<p>The app currently runs on <code>king-prawn-app-44tki.ondigitalocean.app</code>. For a branded API URL:</p>
+<ol>
+  <li>Register a domain (e.g. <code>api.nostia.app</code>)</li>
+  <li>DigitalOcean App Platform → Settings → Domains → <strong>Add Domain</strong></li>
+  <li>Add CNAME at your registrar pointing to the DO app URL</li>
+  <li>DO auto-provisions Let's Encrypt SSL</li>
+  <li>Update <code>ALLOWED_ORIGINS</code> env var + API base URLs in all clients</li>
+  <li><strong>Regenerate SSL pin hash</strong> (steps 2B/2C) after domain change</li>
+</ol>
+
+<!-- ===================== SECTION 5 ===================== -->
+<h2 class="ref">5. Quick Reference — Placeholders Still in Code</h2>
+
+<table>
+  <tr><th>File</th><th>Placeholder Value</th><th>Replace With</th><th>Step</th></tr>
+  <tr>
+    <td><code>nostia-expo/app.json:17</code></td>
+    <td><code>PLACEHOLDER_IOS_BUNDLE_ID</code></td>
+    <td><code>com.nostia.app</code></td>
+    <td>1F</td>
+  </tr>
+  <tr>
+    <td><code>nostia-expo/app.json:42</code></td>
+    <td><code>PLACEHOLDER_GOOGLE_MAPS_API_KEY</code></td>
+    <td>Google Maps API key</td>
+    <td>1E</td>
+  </tr>
+  <tr>
+    <td><code>nostia-android/local.properties</code></td>
+    <td><code>your_google_maps_key</code></td>
+    <td>Google Maps API key</td>
+    <td>1E</td>
+  </tr>
+  <tr>
+    <td><code>nostia-android/local.properties</code></td>
+    <td><code>your_password</code> (×2)</td>
+    <td>Keystore passwords</td>
+    <td>1D</td>
+  </tr>
+  <tr>
+    <td><code>nostia-expo/src/services/notifications.ts</code></td>
+    <td><code>'your-project-id'</code></td>
+    <td>Expo project ID from expo.dev</td>
+    <td>2G</td>
+  </tr>
+</table>
+
+<!-- ===================== SECTION 6 ===================== -->
+<h2 class="ref">6. Full Launch Checklist</h2>
+
+<p><strong><span class="badge badge-red">BLOCKING</span></strong></p>
+<ul class="checklist">
+  <li>1A — Git history audited — secrets rotated if found</li>
+  <li>1B — DigitalOcean env vars set as encrypted secrets</li>
+  <li>1C — DigitalOcean persistent database volume configured</li>
+  <li>1D — Android release keystore generated + backed up securely</li>
+  <li>1E — Google Maps API key generated + configured in app.json + local.properties</li>
+  <li>1F — iOS bundle ID <code>com.nostia.app</code> registered in Apple Developer ($99/yr)</li>
+</ul>
+
+<p style="margin-top:14px"><strong><span class="badge badge-yellow">HIGH</span></strong></p>
+<ul class="checklist">
+  <li>2A — Stripe webhooks verified in Stripe Dashboard (all 4 events)</li>
+  <li>2B — Android OkHttp CertificatePinner implemented</li>
+  <li>2C — iOS TrustKit certificate pinning implemented</li>
+  <li>2D — iOS IOSSecuritySuite jailbreak detection added</li>
+  <li>2E — Android RootBeer root detection added</li>
+  <li>2F — JWT refresh token architecture implemented (backend + all 3 clients)</li>
+  <li>2G — Expo project ID updated in notifications.ts</li>
+  <li>2H — npm audit completed (Expo) — all HIGH/CRITICAL resolved</li>
+  <li>2I — Android Gradle dependency audit completed</li>
+</ul>
+
+<p style="margin-top:14px"><strong><span class="badge badge-blue">STORE SUBMISSION</span></strong></p>
+<ul class="checklist">
+  <li>3A — App Store Connect entry created with screenshots + privacy policy URL</li>
+  <li>3A — iOS archive built in Xcode and uploaded via Distribute App</li>
+  <li>3B — Google Play Console entry created with screenshots + data safety form</li>
+  <li>3B — Signed Android AAB built and uploaded to Internal Testing track</li>
+  <li>3A/3B — Content rating questionnaires completed on both stores</li>
+</ul>
+
+<p style="margin-top:14px"><strong><span class="badge badge-green">MEDIUM</span></strong></p>
+<ul class="checklist">
+  <li>4A — EAS code signing configured (if using Expo OTA updates)</li>
+  <li>4B — 15-min inactivity timeout before Vault/payment access (all platforms)</li>
+  <li>4C — Privacy policy written and published at stable public URL</li>
+  <li>4D — Custom domain set up + SSL pin hash regenerated (optional)</li>
+</ul>
+
+<div style="margin-top:40px; padding-top:16px; border-top:1px solid #e2e8f0; font-size:11px; color:#94a3b8;">
+  Generated for Nostia App — 2026-04-03 &nbsp;|&nbsp; Backend: DigitalOcean / Node / SQLite &nbsp;|&nbsp; Clients: Expo, iOS SwiftUI, Android Kotlin/Compose
+</div>
+
+</body>
+</html>
