@@ -13,6 +13,8 @@ See `EXTERNAL_GUIDE.html` for full step-by-step instructions on each item.
 - [ ] **1D** Generate Android release keystore (`nostia-release.jks`) + update `local.properties` passwords + **back up securely**
 - [ ] **1E** Google Cloud: create Maps API key, restrict to `com.nostia.app` + SHA-1, update `app.json` + `local.properties`
 - [ ] **1F** Apple Developer ($99/yr): register bundle ID `com.nostia.app`, enable Maps + Push Notifications capabilities
+- [ ] **1G** **Create Xcode project** — `nostia-ios/` has NO `.xcodeproj` file. All Swift source files exist but the iOS app cannot be compiled at all until an Xcode project is created and all source files added to it
+- [ ] **1H** Apple Developer: register Apple Pay Merchant ID `merchant.com.nostia` → add Apple Pay capability in Xcode → wire into `VaultViewModel.swift` PaymentSheet config
 
 ---
 
@@ -55,3 +57,4 @@ See `EXTERNAL_GUIDE.html` for full step-by-step instructions on each item.
 | `nostia-android/local.properties` | `your_google_maps_key` | Step 1E |
 | `nostia-android/local.properties` | `your_password` (×2) | Step 1D |
 | `nostia-expo/src/services/notifications.ts` | `'your-project-id'` | Step 2G |
+| `nostia-ios/NostiaApp/Config/AppConfig.swift:8` | `merchant.com.nostia` (unused — not wired into PaymentSheet) | Step 1H |

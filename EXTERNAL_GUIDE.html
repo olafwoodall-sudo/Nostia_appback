@@ -157,6 +157,50 @@ KEY_PASSWORD=&lt;your_password&gt;</code></pre>
   <li>In Xcode: select target → <strong>Signing &amp; Capabilities</strong> → set Team → enable auto-manage signing</li>
 </ol>
 
+<h3 class="critical">1G. Create Xcode Project</h3>
+<p><strong>Why:</strong> <code>nostia-ios/</code> contains all the Swift source files but has <strong>no <code>.xcodeproj</code> file</strong>. The iOS app cannot be opened, compiled, or run in any form until an Xcode project is created and all source files are added to it.</p>
+<ol>
+  <li>Open Xcode → <strong>File → New → Project → iOS → App</strong></li>
+  <li>Settings:
+    <ul>
+      <li>Product Name: <code>Nostia</code></li>
+      <li>Team: your Apple Developer account (from step 1F)</li>
+      <li>Bundle Identifier: <code>com.nostia.app</code></li>
+      <li>Language: <strong>Swift</strong>, Interface: <strong>SwiftUI</strong></li>
+    </ul>
+  </li>
+  <li>Save inside <code>nostia-ios/</code> (so the project file sits at <code>nostia-ios/Nostia.xcodeproj</code>)</li>
+  <li>Add all source files: right-click the project in Xcode → <strong>Add Files to "Nostia"</strong> → select the <code>NostiaApp/</code> folder → check <strong>Create groups</strong> → Add to target: Nostia</li>
+  <li>Add Swift Package Dependencies (<strong>File → Add Package Dependencies</strong>):
+    <ul>
+      <li>Stripe iOS SDK: <code>https://github.com/stripe/stripe-ios-spm</code> → add <code>StripePaymentSheet</code></li>
+      <li>TrustKit (step 2C): <code>https://github.com/datatheorem/TrustKit</code></li>
+      <li>IOSSecuritySuite (step 2D): <code>https://github.com/securing/IOSSecuritySuite</code></li>
+    </ul>
+  </li>
+  <li>Select target → <strong>Signing &amp; Capabilities</strong> → set Team → enable <strong>Automatically manage signing</strong></li>
+  <li>Add capabilities: <strong>Maps</strong>, <strong>Push Notifications</strong>, <strong>Apple Pay</strong> (step 1H)</li>
+  <li>Build (<kbd>Cmd+B</kbd>) and fix any compilation errors before proceeding</li>
+</ol>
+
+<h3 class="critical">1H. Apple Pay Merchant ID</h3>
+<p><strong>Why:</strong> <code>AppConfig.stripeMerchantIdentifier = "merchant.com.nostia"</code> is defined in the iOS app but never registered with Apple and never wired into the Stripe <code>PaymentSheet</code> configuration. Apple Pay will not work for vault payments without this.</p>
+<ol>
+  <li>Go to <a href="https://developer.apple.com/account/resources/identifiers/list/merchant">developer.apple.com → Identifiers → Merchant IDs</a></li>
+  <li>Click <strong>+</strong> → Merchant IDs → Description: <code>Nostia Payments</code>, Identifier: <code>merchant.com.nostia</code> → Register</li>
+  <li>In Xcode: select target → <strong>Signing &amp; Capabilities → + Capability → Apple Pay</strong> → check <code>merchant.com.nostia</code></li>
+  <li>Wire it into <code>nostia-ios/NostiaApp/ViewModels/VaultViewModel.swift</code> around line 60:
+    <pre><code>var config = PaymentSheet.Configuration()
+config.merchantDisplayName = "Nostia"
+config.applePay = .init(
+    merchantId: AppConfig.stripeMerchantIdentifier,
+    merchantCountryCode: "US"  // change to your country code
+)
+paymentSheet = PaymentSheet(paymentIntentClientSecret: res.clientSecret, configuration: config)</code></pre>
+  </li>
+  <li>In Stripe Dashboard → Settings → Apple Pay: upload your Apple Pay certificate (generated via developer.apple.com after creating the Merchant ID)</li>
+</ol>
+
 <!-- ===================== SECTION 2 ===================== -->
 <h2 class="high">2. HIGH PRIORITY — Fix before store submission</h2>
 
@@ -365,6 +409,18 @@ eas credentials</code></pre>
     <td>Expo project ID from expo.dev</td>
     <td>2G</td>
   </tr>
+  <tr>
+    <td><code>nostia-ios/NostiaApp/Config/AppConfig.swift:8</code></td>
+    <td><code>merchant.com.nostia</code> (unused — not wired into PaymentSheet)</td>
+    <td>Register in Apple Developer + wire into VaultViewModel</td>
+    <td>1H</td>
+  </tr>
+  <tr>
+    <td><code>nostia-ios/</code> (entire folder)</td>
+    <td>No <code>.xcodeproj</code> file exists</td>
+    <td>Create Xcode project, add all source files</td>
+    <td>1G</td>
+  </tr>
 </table>
 
 <!-- ===================== SECTION 6 ===================== -->
@@ -378,6 +434,8 @@ eas credentials</code></pre>
   <li>1D — Android release keystore generated + backed up securely</li>
   <li>1E — Google Maps API key generated + configured in app.json + local.properties</li>
   <li>1F — iOS bundle ID <code>com.nostia.app</code> registered in Apple Developer ($99/yr)</li>
+  <li>1G — Xcode project created, all source files added, Swift packages added, compiles clean</li>
+  <li>1H — Apple Pay Merchant ID <code>merchant.com.nostia</code> registered + Apple Pay capability in Xcode + wired into VaultViewModel</li>
 </ul>
 
 <p style="margin-top:14px"><strong><span class="badge badge-yellow">HIGH</span></strong></p>
