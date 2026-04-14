@@ -7,7 +7,7 @@ import { Alert } from 'react-native';
 const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_URL ||
   Constants.expoConfig?.extra?.apiUrl ||
-  'https://king-prawn-app-44tki.ondigitalocean.app/api';
+  'http://142.93.116.6:8080/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
