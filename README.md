@@ -21,8 +21,8 @@ A full-stack social adventure platform with friend management, trip planning, ex
 | Layer | Tech |
 |-------|------|
 | Mobile | React Native (Expo) |
-| Backend | Node.js + Express — hosted on DigitalOcean App Platform |
-| Database | SQLite (persisted on DO) |
+| Backend | Node.js + Express — hosted on DigitalOcean VPS (api.nostia.io), managed by PM2 |
+| Database | SQLite — persisted at `/var/data/nostia/nostia.db` |
 | Payments | Stripe Connect (live) |
 | Push Notifications | Expo Push Notification Service |
 
@@ -70,7 +70,7 @@ nostia-app/
 
 The backend is deployed at:
 ```
-https://king-prawn-app-44tki.ondigitalocean.app
+https://api.nostia.io/api
 ```
 
 You do **not** need to run the backend locally. The mobile app is pre-configured to point at the production server.
@@ -93,7 +93,7 @@ npm install
 `nostia-mobile/.env` should already contain:
 
 ```env
-EXPO_PUBLIC_API_URL=https://king-prawn-app-44tki.ondigitalocean.app/api
+EXPO_PUBLIC_API_URL=https://api.nostia.io/api
 EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
 ```
 
@@ -170,17 +170,16 @@ stripe listen --forward-to localhost:3000/api/stripe/webhook
 
 ---
 
-## Deploying Backend Changes to DigitalOcean
+## Deploying Backend Changes
 
-Push to `main` — DigitalOcean Auto-Deploy picks it up automatically.
+Push to `appback` remote, then SSH and run the deploy script:
 
 ```bash
-git add .
-git commit -m "your message"
-git push origin main
+git push appback main
+ssh -i ~/.ssh/id_ed25519 root@142.93.116.6 "/root/deploy.sh"
 ```
 
-The DO app rebuilds and redeploys. Monitor progress in the DO dashboard under **Runtime Logs**.
+The deploy script does: `git pull → npm install → pm2 restart nostia`. Monitor with `pm2 logs nostia`.
 
 ---
 
@@ -197,7 +196,7 @@ The DO app rebuilds and redeploys. Monitor progress in the DO dashboard under **
 
 Webhook endpoint:
 ```
-https://king-prawn-app-44tki.ondigitalocean.app/api/stripe/webhook
+https://api.nostia.io/api/stripe/webhook
 ```
 
 ### Stripe Connect onboarding flow

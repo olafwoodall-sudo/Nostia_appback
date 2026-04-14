@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "PLACEHOLDER_IOS_BUNDLE_ID",
+      "bundleIdentifier": "com.nostia.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Nostia uses your location to show nearby events and share your position with friends.",
         "NSCameraUsageDescription": "Nostia needs camera access to let you take photos for posts.",
@@ -51,7 +51,8 @@
       "expo-font",
       "expo-location",
       "expo-camera",
-      "expo-image-picker"
+      "expo-image-picker",
+      "expo-notifications"
     ]
   }
 }
