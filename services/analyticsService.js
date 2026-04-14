@@ -113,8 +113,11 @@ class AnalyticsService {
       GROUP BY strftime('%Y-W%W', u.createdAt)
     `).all(startDate, endDate);
 
+    const MIN_COHORT_SIZE = 5; // Suppress cohorts smaller than this to prevent re-identification
     const stored = [];
     for (const cohort of cohorts) {
+      if (cohort.cohortSize < MIN_COHORT_SIZE) continue;
+
       // Check activity in subsequent weeks (up to 4 weeks)
       for (let weekOffset = 1; weekOffset <= 4; weekOffset++) {
         const activeCount = db.prepare(`

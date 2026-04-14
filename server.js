@@ -110,6 +110,25 @@ const searchLimiter = rateLimit({
 // Prune expired blacklisted tokens every hour
 setInterval(pruneTokenBlacklist, 60 * 60 * 1000);
 
+// Purge analytics raw data beyond retention period — runs once daily at startup + every 24h
+function purgeAnalyticsAndAuditLogs() {
+  try {
+    AnalyticsService.purgeExpiredData();
+  } catch (e) {
+    console.error('[PURGE] Analytics purge failed:', e.message);
+  }
+  try {
+    const retentionDays = parseInt(process.env.DATA_RETENTION_DAYS) || 90;
+    db.prepare(
+      `DELETE FROM audit_log WHERE createdAt < datetime('now', '-' || ? || ' days')`
+    ).run(retentionDays);
+  } catch (e) {
+    console.error('[PURGE] Audit log purge failed:', e.message);
+  }
+}
+purgeAnalyticsAndAuditLogs();
+setInterval(purgeAnalyticsAndAuditLogs, 24 * 60 * 60 * 1000);
+
 app.use('/api/', apiLimiter);
 
 // Standard middleware
@@ -1294,6 +1313,10 @@ app.post('/api/analytics/track-batch', authenticateToken, requireConsent, (req, 
       return res.status(400).json({ error: 'events array is required' });
     }
 
+    if (events.length > 500) {
+      return res.status(400).json({ error: 'Batch size limit is 500 events per request' });
+    }
+
     const enrichedEvents = events.map(evt => ({
       ...evt,
       userId: req.user.id
@@ -1640,7 +1663,7 @@ app.post('/api/privacy/data-request', authenticateToken, exportLimiter, (req, re
         INNER JOIN conversations c ON m.conversationId = c.id
         WHERE c.user1Id = ? OR c.user2Id = ?
       `).all(userId, userId),
-      analyticsEvents: db.prepare('SELECT id, eventType, eventName, createdAt FROM analytics_events WHERE userId = ? LIMIT 1000').all(userId),
+      analyticsEvents: db.prepare('SELECT id, eventType, eventName, createdAt FROM analytics_events WHERE userId = ?').all(userId),
       notifications: db.prepare('SELECT * FROM notifications WHERE userId = ?').all(userId)
     };
 
