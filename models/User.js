@@ -37,7 +37,7 @@ class User {
   }
 
   static findByUsername(username) {
-    const stmt = db.prepare('SELECT * FROM users WHERE username = ?');
+    const stmt = db.prepare('SELECT * FROM users WHERE LOWER(username) = LOWER(?)');
     return stmt.get(username);
   }
 

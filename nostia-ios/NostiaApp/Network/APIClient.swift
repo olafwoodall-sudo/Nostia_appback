@@ -35,8 +35,11 @@ final class APIClient {
         guard let http = response as? HTTPURLResponse else { throw APIError.unknown }
 
         if http.statusCode == 401 {
-            AuthManager.shared.logout()
-            throw APIError.httpError(statusCode: 401, message: "Session expired. Please log in again.")
+            if requiresAuth {
+                AuthManager.shared.logout()
+            }
+            let msg = (try? JSONDecoder().decode(APIErrorResponse.self, from: data))?.error ?? "Session expired. Please log in again."
+            throw APIError.httpError(statusCode: 401, message: msg)
         }
 
         if http.statusCode == 403 {

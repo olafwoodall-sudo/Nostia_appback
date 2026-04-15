@@ -111,6 +111,8 @@ struct NostiaTextField: View {
                 .foregroundColor(.white.opacity(0.7))
             TextField(placeholder, text: $text)
                 .keyboardType(keyboardType)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
                 .padding(16)
                 .glassEffect(in: RoundedRectangle(cornerRadius: 12))
                 .foregroundColor(.white)
