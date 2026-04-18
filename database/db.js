@@ -615,6 +615,11 @@ function initializeDatabase() {
     db.exec(`ALTER TABLE vault_members ADD COLUMN disputeFlag BOOLEAN DEFAULT 0`);
   } catch (e) {}
 
+  // Stripe customer ID for saving cards
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN stripe_customer_id TEXT`);
+  } catch (e) {}
+
   console.log('✅ Database tables initialized successfully');
 }
 

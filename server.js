@@ -1741,6 +1741,76 @@ app.post('/api/privacy/delete-data', authenticateToken, (req, res) => {
 
 // ==================== STRIPE CONNECT ROUTES ====================
 
+// Create a SetupIntent so users can save a card for paying trip splits
+app.post('/api/stripe/setup-intent', authenticateToken, async (req, res) => {
+  try {
+    const Stripe = require('stripe');
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+    // Get or create a Stripe customer for this user
+    let user = db.prepare('SELECT id, email, name, stripe_customer_id FROM users WHERE id = ?').get(req.user.id);
+    let customerId = user.stripe_customer_id;
+    if (!customerId) {
+      const customer = await stripe.customers.create({ email: user.email, name: user.name, metadata: { userId: String(user.id) } });
+      customerId = customer.id;
+      db.prepare('UPDATE users SET stripe_customer_id = ? WHERE id = ?').run(customerId, user.id);
+    }
+
+    const [ephemeralKey, setupIntent] = await Promise.all([
+      stripe.ephemeralKeys.create({ customer: customerId }, { apiVersion: '2024-04-10' }),
+      stripe.setupIntents.create({ customer: customerId, usage: 'off_session' })
+    ]);
+
+    res.json({ clientSecret: setupIntent.client_secret, customerId, ephemeralKey: ephemeralKey.secret });
+  } catch (error) {
+    console.error('Setup intent error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Save a payment method after SetupIntent completes
+app.post('/api/stripe/payment-methods/save', authenticateToken, async (req, res) => {
+  try {
+    const { paymentMethodId } = req.body;
+    if (!paymentMethodId) return res.status(400).json({ error: 'paymentMethodId is required' });
+
+    const Stripe = require('stripe');
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    const pm = await stripe.paymentMethods.retrieve(paymentMethodId);
+
+    const isFirst = Payment.getUserPaymentMethods(req.user.id).length === 0;
+    Payment.addPaymentMethod(req.user.id, paymentMethodId, {
+      type: pm.type,
+      brand: pm.card?.brand,
+      last4: pm.card?.last4,
+      expiryMonth: pm.card?.exp_month,
+      expiryYear: pm.card?.exp_year,
+      isDefault: isFirst
+    });
+
+    res.status(201).json({ message: 'Card saved' });
+  } catch (error) {
+    console.error('Save payment method error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Alias routes so iOS /stripe/payment-methods paths resolve correctly
+app.get('/api/stripe/payment-methods', authenticateToken, (req, res) => {
+  try { res.json(Payment.getUserPaymentMethods(req.user.id)); }
+  catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.delete('/api/stripe/payment-methods/:id', authenticateToken, (req, res) => {
+  try { Payment.deletePaymentMethod(req.params.id, req.user.id); res.json({ message: 'Removed' }); }
+  catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.put('/api/stripe/payment-methods/:id/default', authenticateToken, (req, res) => {
+  try { Payment.setDefaultPaymentMethod(req.user.id, req.params.id); res.json({ message: 'Default updated' }); }
+  catch (error) { res.status(500).json({ error: error.message }); }
+});
+
 // Start Stripe Connect onboarding for vault creators
 app.post('/api/stripe/onboard', authenticateToken, async (req, res) => {
   try {
