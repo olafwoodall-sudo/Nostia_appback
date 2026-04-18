@@ -29,9 +29,11 @@ class Payment {
   }
 
   static setDefaultPaymentMethod(userId, paymentMethodId) {
-    db.prepare('UPDATE payment_methods SET isDefault = 0 WHERE userId = ?').run(userId);
-    return db.prepare('UPDATE payment_methods SET isDefault = 1 WHERE id = ? AND userId = ?')
-      .run(paymentMethodId, userId);
+    return db.transaction(() => {
+      db.prepare('UPDATE payment_methods SET isDefault = 0 WHERE userId = ?').run(userId);
+      return db.prepare('UPDATE payment_methods SET isDefault = 1 WHERE id = ? AND userId = ?')
+        .run(paymentMethodId, userId);
+    })();
   }
 
   static deletePaymentMethod(id, userId) {

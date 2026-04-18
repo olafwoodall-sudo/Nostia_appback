@@ -1742,18 +1742,26 @@ app.post('/api/privacy/delete-data', authenticateToken, (req, res) => {
 // ==================== STRIPE CONNECT ROUTES ====================
 
 // Create a SetupIntent so users can save a card for paying trip splits
-app.post('/api/stripe/setup-intent', authenticateToken, async (req, res) => {
+app.post('/api/stripe/setup-intent', paymentLimiter, authenticateToken, async (req, res) => {
   try {
     const Stripe = require('stripe');
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-    // Get or create a Stripe customer for this user
+    // Get or create a Stripe customer for this user (race-safe)
     let user = db.prepare('SELECT id, email, name, stripe_customer_id FROM users WHERE id = ?').get(req.user.id);
     let customerId = user.stripe_customer_id;
     if (!customerId) {
       const customer = await stripe.customers.create({ email: user.email, name: user.name, metadata: { userId: String(user.id) } });
-      customerId = customer.id;
-      db.prepare('UPDATE users SET stripe_customer_id = ? WHERE id = ?').run(customerId, user.id);
+      const result = db.prepare('UPDATE users SET stripe_customer_id = ? WHERE id = ? AND stripe_customer_id IS NULL')
+        .run(customer.id, user.id);
+      if (result.changes === 0) {
+        // Another request won the race — discard orphaned customer and use the existing one
+        await stripe.customers.del(customer.id).catch(() => {});
+        user = db.prepare('SELECT stripe_customer_id FROM users WHERE id = ?').get(req.user.id);
+        customerId = user.stripe_customer_id;
+      } else {
+        customerId = customer.id;
+      }
     }
 
     const [ephemeralKey, setupIntent] = await Promise.all([
@@ -1764,12 +1772,12 @@ app.post('/api/stripe/setup-intent', authenticateToken, async (req, res) => {
     res.json({ clientSecret: setupIntent.client_secret, customerId, ephemeralKey: ephemeralKey.secret });
   } catch (error) {
     console.error('Setup intent error:', error.message);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to create payment setup. Please try again.' });
   }
 });
 
 // Save a payment method after SetupIntent completes
-app.post('/api/stripe/payment-methods/save', authenticateToken, async (req, res) => {
+app.post('/api/stripe/payment-methods/save', paymentLimiter, authenticateToken, async (req, res) => {
   try {
     const { paymentMethodId } = req.body;
     if (!paymentMethodId) return res.status(400).json({ error: 'paymentMethodId is required' });
@@ -1778,20 +1786,34 @@ app.post('/api/stripe/payment-methods/save', authenticateToken, async (req, res)
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const pm = await stripe.paymentMethods.retrieve(paymentMethodId);
 
+    // Verify the payment method belongs to this user's Stripe customer
+    const user = db.prepare('SELECT stripe_customer_id FROM users WHERE id = ?').get(req.user.id);
+    if (!user?.stripe_customer_id || pm.customer !== user.stripe_customer_id) {
+      console.warn(`PM ownership mismatch: user ${req.user.id} tried to save PM ${paymentMethodId} belonging to customer ${pm.customer}`);
+      return res.status(403).json({ error: 'Payment method does not belong to your account' });
+    }
+
     const isFirst = Payment.getUserPaymentMethods(req.user.id).length === 0;
-    Payment.addPaymentMethod(req.user.id, paymentMethodId, {
-      type: pm.type,
-      brand: pm.card?.brand,
-      last4: pm.card?.last4,
-      expiryMonth: pm.card?.exp_month,
-      expiryYear: pm.card?.exp_year,
-      isDefault: isFirst
-    });
+    try {
+      Payment.addPaymentMethod(req.user.id, paymentMethodId, {
+        type: pm.type,
+        brand: pm.card?.brand,
+        last4: pm.card?.last4,
+        expiryMonth: pm.card?.exp_month,
+        expiryYear: pm.card?.exp_year,
+        isDefault: isFirst
+      });
+    } catch (dbErr) {
+      if (dbErr.message?.includes('UNIQUE')) {
+        return res.status(409).json({ error: 'This card is already saved to your account' });
+      }
+      throw dbErr;
+    }
 
     res.status(201).json({ message: 'Card saved' });
   } catch (error) {
     console.error('Save payment method error:', error.message);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to save payment method. Please try again.' });
   }
 });
 
@@ -1818,7 +1840,7 @@ app.post('/api/stripe/onboard', authenticateToken, async (req, res) => {
     res.json({ url, accountId });
   } catch (error) {
     console.error('Stripe onboarding error:', error.message);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to start onboarding. Please try again.' });
   }
 });
 
@@ -1830,7 +1852,7 @@ app.get('/api/stripe/onboard/status', authenticateToken, async (req, res) => {
     res.json({ complete, stripeAccountId: user?.stripe_account_id || null });
   } catch (error) {
     console.error('Onboarding status error:', error.message);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to fetch onboarding status. Please try again.' });
   }
 });
 
@@ -1939,7 +1961,7 @@ app.post('/api/vault/splits/:splitId/payment-intent', paymentLimiter, authentica
     if (split.userId !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
     if (split.paid) return res.status(400).json({ error: 'Split already paid' });
 
-    // Reuse existing pending PaymentIntent if one exists
+    // Reuse existing pending PaymentIntent if one exists and is still valid on Stripe
     const existing = db.prepare(
       'SELECT stripePaymentIntentId FROM vault_transactions WHERE vaultSplitId = ? AND status = ?'
     ).get(splitId, 'pending');
@@ -1947,7 +1969,11 @@ app.post('/api/vault/splits/:splitId/payment-intent', paymentLimiter, authentica
       const Stripe = require('stripe');
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
       const pi = await stripe.paymentIntents.retrieve(existing.stripePaymentIntentId);
-      return res.json({ clientSecret: pi.client_secret, chargedAmount: pi.amount / 100 });
+      if (pi.status === 'requires_payment_method' || pi.status === 'requires_confirmation' || pi.status === 'requires_action') {
+        return res.json({ clientSecret: pi.client_secret, chargedAmount: pi.amount / 100 });
+      }
+      // PI is stale (canceled/expired) — fall through to create a new one
+      db.prepare(`UPDATE vault_transactions SET status = 'canceled' WHERE stripePaymentIntentId = ?`).run(existing.stripePaymentIntentId);
     }
 
     const chargedAmount = calculateChargedAmount(split.amount);
@@ -1988,7 +2014,7 @@ app.post('/api/vault/splits/:splitId/payment-intent', paymentLimiter, authentica
     res.json({ clientSecret: intent.client_secret, chargedAmount });
   } catch (error) {
     console.error('Split payment intent error:', error.message);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to create payment. Please try again.' });
   }
 });
 

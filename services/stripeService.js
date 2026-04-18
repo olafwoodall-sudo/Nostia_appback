@@ -97,14 +97,19 @@ class StripeService {
         const pi = event.data.object;
         const { vaultId, memberId, splitId, type } = pi.metadata || {};
         if (type === 'vault_split' && splitId) {
+          const splitIdInt = parseInt(splitId, 10);
+          if (!Number.isInteger(splitIdInt)) { console.error('Webhook: invalid splitId in metadata', pi.id); break; }
           db.prepare(`UPDATE vault_splits SET paid = 1, paidViaStripe = 1, paidAt = CURRENT_TIMESTAMP WHERE id = ?`)
-            .run(parseInt(splitId));
+            .run(splitIdInt);
           db.prepare(`UPDATE vault_transactions SET status = 'completed', completedAt = CURRENT_TIMESTAMP WHERE stripePaymentIntentId = ?`)
             .run(pi.id);
           console.log(`✅ Vault split ${splitId} marked as paid via Stripe`);
         } else if (vaultId && memberId) {
+          const memberIdInt = parseInt(memberId, 10);
+          const vaultIdInt = parseInt(vaultId, 10);
+          if (!Number.isInteger(memberIdInt) || !Number.isInteger(vaultIdInt)) { console.error('Webhook: invalid member/vault id in metadata', pi.id); break; }
           db.prepare(`UPDATE vault_members SET status = 'paid' WHERE id = ? AND vault_id = ?`)
-            .run(parseInt(memberId), parseInt(vaultId));
+            .run(memberIdInt, vaultIdInt);
           console.log(`✅ Vault member ${memberId} marked as paid`);
         }
         break;
@@ -115,12 +120,17 @@ class StripeService {
         const { splitId, type, vaultId, memberId } = pi.metadata || {};
         const reason = pi.last_payment_error?.message || 'Payment failed';
         if (type === 'vault_split' && splitId) {
+          const splitIdInt = parseInt(splitId, 10);
+          if (!Number.isInteger(splitIdInt)) { console.error('Webhook: invalid splitId in metadata', pi.id); break; }
           db.prepare(`UPDATE vault_transactions SET status = 'failed', failureReason = ? WHERE stripePaymentIntentId = ?`)
             .run(reason, pi.id);
           console.log(`❌ Vault split ${splitId} payment failed: ${reason}`);
         } else if (vaultId && memberId) {
+          const memberIdInt = parseInt(memberId, 10);
+          const vaultIdInt = parseInt(vaultId, 10);
+          if (!Number.isInteger(memberIdInt) || !Number.isInteger(vaultIdInt)) { console.error('Webhook: invalid member/vault id in metadata', pi.id); break; }
           db.prepare(`UPDATE vault_members SET status = 'failed' WHERE id = ? AND vault_id = ?`)
-            .run(parseInt(memberId), parseInt(vaultId));
+            .run(memberIdInt, vaultIdInt);
           console.log(`❌ Vault member ${memberId} payment failed: ${reason}`);
         }
         break;
