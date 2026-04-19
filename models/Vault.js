@@ -123,9 +123,9 @@ class Vault {
 
     return {
       tripId,
-      totalExpenses,
+      totalAmount: totalExpenses,
       entryCount: entries.length,
-      balances: Object.values(balances),
+      balances: Object.values(balances).map(b => ({ id: b.userId, name: b.name, paid: b.paid, owes: b.owes, balance: b.balance })),
       entries,
       unpaidSplits
     };
@@ -161,7 +161,8 @@ class Vault {
   // Get splits for an entry
   static getSplits(vaultEntryId) {
     const stmt = db.prepare(`
-      SELECT vs.*, u.username, u.name
+      SELECT vs.id, vs.vaultEntryId, vs.userId, vs.amount, vs.paid, vs.paidAt,
+             u.name as userName
       FROM vault_splits vs
       INNER JOIN users u ON vs.userId = u.id
       WHERE vs.vaultEntryId = ?
