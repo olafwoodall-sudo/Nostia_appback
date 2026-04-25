@@ -259,6 +259,27 @@ function initializeDatabase() {
     // Column already exists
   }
 
+  // Add status column to trip_participants (active, kicked)
+  try {
+    db.exec(`ALTER TABLE trip_participants ADD COLUMN status TEXT DEFAULT 'active'`);
+  } catch (e) {
+    // Column already exists
+  }
+
+  // Trip group chat messages
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS trip_chat_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tripId INTEGER NOT NULL,
+      senderId INTEGER NOT NULL,
+      content TEXT NOT NULL,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (tripId) REFERENCES trips(id) ON DELETE CASCADE,
+      FOREIGN KEY (senderId) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_trip_chat_tripId ON trip_chat_messages(tripId)`);
+
   // Add latitude/longitude to events for location-based discovery
   try {
     db.exec(`ALTER TABLE events ADD COLUMN latitude REAL`);

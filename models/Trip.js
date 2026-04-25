@@ -126,15 +126,67 @@ class Trip {
     return stmt.run(tripId, userId);
   }
 
+  static kickParticipant(tripId, userId, kickedBy) {
+    const trip = db.prepare('SELECT vaultLeaderId FROM trips WHERE id = ?').get(tripId);
+    if (!trip) throw new Error('Trip not found');
+    if (trip.vaultLeaderId !== kickedBy) throw new Error('Only the vault leader can kick members');
+
+    const participant = db.prepare(
+      'SELECT * FROM trip_participants WHERE tripId = ? AND userId = ?'
+    ).get(tripId, userId);
+    if (!participant) throw new Error('User is not a participant');
+    if (userId === kickedBy) throw new Error('Cannot kick yourself');
+
+    db.prepare(
+      "UPDATE trip_participants SET status = 'kicked' WHERE tripId = ? AND userId = ?"
+    ).run(tripId, userId);
+
+    return this.findById(tripId);
+  }
+
   static getParticipants(tripId) {
     const stmt = db.prepare(`
-      SELECT u.id, u.username, u.name, tp.role
+      SELECT u.id, u.username, u.name, tp.role, tp.status
       FROM users u
       INNER JOIN trip_participants tp ON u.id = tp.userId
       WHERE tp.tripId = ?
     `);
 
     return stmt.all(tripId);
+  }
+
+  // Trip group chat
+  static getChatMessages(tripId, limit = 100, offset = 0) {
+    const stmt = db.prepare(`
+      SELECT m.id, m.tripId, m.senderId, m.content, m.createdAt,
+        u.name as senderName, u.username as senderUsername
+      FROM trip_chat_messages m
+      INNER JOIN users u ON m.senderId = u.id
+      WHERE m.tripId = ?
+      ORDER BY m.createdAt ASC
+      LIMIT ? OFFSET ?
+    `);
+    return stmt.all(tripId, limit, offset);
+  }
+
+  static sendChatMessage(tripId, senderId, content) {
+    const participant = db.prepare(
+      "SELECT status FROM trip_participants WHERE tripId = ? AND userId = ?"
+    ).get(tripId, senderId);
+    if (!participant) throw new Error('Not a participant of this vault');
+    if (participant.status === 'kicked') throw new Error('Kicked members cannot send messages');
+
+    const result = db.prepare(
+      'INSERT INTO trip_chat_messages (tripId, senderId, content) VALUES (?, ?, ?)'
+    ).run(tripId, senderId, content);
+
+    return db.prepare(`
+      SELECT m.id, m.tripId, m.senderId, m.content, m.createdAt,
+        u.name as senderName, u.username as senderUsername
+      FROM trip_chat_messages m
+      INNER JOIN users u ON m.senderId = u.id
+      WHERE m.id = ?
+    `).get(result.lastInsertRowid);
   }
 
   // Vault Leader Management

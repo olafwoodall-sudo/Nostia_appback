@@ -738,6 +738,43 @@ app.post('/api/trips/:id/vault-leader', authenticateToken, (req, res) => {
   }
 });
 
+// Kick participant from trip
+app.post('/api/trips/:id/kick/:userId', authenticateToken, (req, res) => {
+  try {
+    const trip = Trip.kickParticipant(req.params.id, parseInt(req.params.userId), req.user.id);
+    res.json(trip);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Get trip chat messages
+app.get('/api/trips/:id/chat', authenticateToken, (req, res) => {
+  try {
+    const tripId = parseInt(req.params.id);
+    const participant = Trip.getParticipants(tripId).find(p => p.id === req.user.id);
+    if (!participant) return res.status(403).json({ error: 'Not a participant' });
+    const limit = parseInt(req.query.limit) || 100;
+    const offset = parseInt(req.query.offset) || 0;
+    const messages = Trip.getChatMessages(tripId, limit, offset);
+    res.json(messages);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Send trip chat message
+app.post('/api/trips/:id/chat', authenticateToken, (req, res) => {
+  try {
+    const { content } = req.body;
+    if (!content || !content.trim()) return res.status(400).json({ error: 'Content is required' });
+    const message = Trip.sendChatMessage(parseInt(req.params.id), req.user.id, content.trim());
+    res.status(201).json(message);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 // Invite user to trip
 app.post('/api/trips/:id/invite', authenticateToken, (req, res) => {
   try {
