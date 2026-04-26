@@ -641,6 +641,21 @@ function initializeDatabase() {
     db.exec(`ALTER TABLE users ADD COLUMN stripe_customer_id TEXT`);
   } catch (e) {}
 
+  // QR invite tokens for vaults
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS vault_invite_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tripId INTEGER NOT NULL,
+      token TEXT UNIQUE NOT NULL,
+      createdBy INTEGER NOT NULL,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      expiresAt DATETIME NOT NULL,
+      FOREIGN KEY (tripId) REFERENCES trips(id) ON DELETE CASCADE,
+      FOREIGN KEY (createdBy) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_vault_invite_tokens_token ON vault_invite_tokens(token)`);
+
   console.log('✅ Database tables initialized successfully');
 }
 

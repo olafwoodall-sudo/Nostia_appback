@@ -292,6 +292,77 @@ class Trip {
 
     return this.findById(invitation.tripId);
   }
+
+  static getOrCreateInviteToken(tripId, userId) {
+    const numTripId = parseInt(tripId, 10);
+    const numUserId = parseInt(userId, 10);
+    const membership = db.prepare(
+      "SELECT status FROM trip_participants WHERE tripId = ? AND userId = ?"
+    ).get(numTripId, numUserId);
+    if (!membership || membership.status === 'kicked') {
+      throw new Error('Only active vault members can generate an invite token');
+    }
+    const existing = db.prepare(`
+      SELECT token FROM vault_invite_tokens
+      WHERE tripId = ? AND expiresAt > datetime('now')
+      ORDER BY expiresAt DESC LIMIT 1
+    `).get(numTripId);
+    if (existing) return existing.token;
+    db.prepare("DELETE FROM vault_invite_tokens WHERE tripId = ? AND expiresAt <= datetime('now')").run(numTripId);
+    const token = require('crypto').randomBytes(16).toString('hex');
+    db.prepare(`
+      INSERT INTO vault_invite_tokens (tripId, token, createdBy, expiresAt)
+      VALUES (?, ?, ?, datetime('now', '+7 days'))
+    `).run(numTripId, token, numUserId);
+    return token;
+  }
+
+  static redeemInviteToken(token, redeemingUserId) {
+    const numRedeemerId = parseInt(redeemingUserId, 10);
+    const TripClass = this;
+
+    return db.transaction(() => {
+      const row = db.prepare(`
+        SELECT vit.tripId, vit.expiresAt, t.title AS vaultName
+        FROM vault_invite_tokens vit
+        INNER JOIN trips t ON vit.tripId = t.id
+        WHERE vit.token = ?
+      `).get(token);
+      if (!row) throw new Error('Invalid invite token');
+      if (new Date(row.expiresAt + 'Z') < new Date()) throw new Error('Invite token has expired');
+
+      const { tripId, vaultName } = row;
+      const existing = db.prepare(
+        "SELECT status FROM trip_participants WHERE tripId = ? AND userId = ?"
+      ).get(tripId, numRedeemerId);
+
+      if (existing) {
+        if (existing.status === 'kicked') throw new Error('You have been removed from this vault and cannot rejoin via invite');
+        return { trip: TripClass.findById(tripId), alreadyMember: true, friendsAdded: 0, vaultName };
+      }
+
+      db.prepare(`INSERT INTO trip_participants (tripId, userId, role, status) VALUES (?, ?, 'participant', 'active')`).run(tripId, numRedeemerId);
+
+      const activeMembers = db.prepare(`
+        SELECT userId FROM trip_participants WHERE tripId = ? AND userId != ? AND status = 'active'
+      `).all(tripId, numRedeemerId);
+
+      let friendsAdded = 0;
+      for (const member of activeMembers) {
+        db.prepare(`
+          INSERT INTO friends (userId, friendId, status) VALUES (?, ?, 'accepted')
+          ON CONFLICT(userId, friendId) DO UPDATE SET status = 'accepted'
+        `).run(numRedeemerId, member.userId);
+        db.prepare(`
+          INSERT INTO friends (userId, friendId, status) VALUES (?, ?, 'accepted')
+          ON CONFLICT(userId, friendId) DO UPDATE SET status = 'accepted'
+        `).run(member.userId, numRedeemerId);
+        friendsAdded++;
+      }
+
+      return { trip: TripClass.findById(tripId), alreadyMember: false, friendsAdded, vaultName };
+    })();
+  }
 }
 
 module.exports = Trip;

@@ -786,6 +786,32 @@ app.post('/api/trips/:id/invite', authenticateToken, (req, res) => {
   }
 });
 
+// Generate / fetch QR invite token for a vault (any active member)
+app.get('/api/trips/:id/invite-token', authenticateToken, (req, res) => {
+  try {
+    const token = Trip.getOrCreateInviteToken(req.params.id, req.user.id);
+    res.json({ token });
+  } catch (error) {
+    res.status(403).json({ error: error.message });
+  }
+});
+
+// Redeem QR invite token — join vault + auto-friend members
+app.post('/api/invite/redeem', authenticateToken, (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token || !/^[0-9a-f]{32}$/.test(token)) {
+      return res.status(400).json({ error: 'Invalid token format' });
+    }
+    const result = Trip.redeemInviteToken(token, req.user.id);
+    res.json(result);
+  } catch (error) {
+    const clientErrors = ['Invalid invite token', 'Invite token has expired', 'You have been removed'];
+    const isClient = clientErrors.some(m => error.message.startsWith(m));
+    res.status(isClient ? 400 : 500).json({ error: error.message });
+  }
+});
+
 // ==================== EVENT ROUTES ====================
 
 // Get all events (filtered by visibility)
