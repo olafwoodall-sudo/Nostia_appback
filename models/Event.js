@@ -15,24 +15,25 @@ class Event {
     `);
 
     const result = stmt.run(title, description, location, eventDate, createdBy, type || 'social', latitude || null, longitude || null, visibility || 'public');
-    return this.findById(result.lastInsertRowid);
+    return this.findById(result.lastInsertRowid, createdBy);
   }
 
-  static findById(id) {
-    const stmt = db.prepare(`
-      SELECT e.*, u.username as creatorUsername, u.name as creatorName
+  static findById(id, requestingUserId = null) {
+    return db.prepare(`
+      SELECT e.*, u.username as creatorUsername, u.name as creatorName,
+        (SELECT COUNT(*) FROM event_rsvps WHERE eventId = e.id AND status = 'going') as goingCount,
+        (SELECT status FROM event_rsvps WHERE eventId = e.id AND userId = ?) as myRsvp
       FROM events e
       INNER JOIN users u ON e.createdBy = u.id
       WHERE e.id = ?
-    `);
-
-    return stmt.get(id);
+    `).get(requestingUserId, id);
   }
 
   static getAll(requestingUserId = null) {
-    // public: everyone sees; friends: only friends + creator; private: only creator
-    const stmt = db.prepare(`
-      SELECT e.*, u.username as creatorUsername, u.name as creatorName
+    return db.prepare(`
+      SELECT e.*, u.username as creatorUsername, u.name as creatorName,
+        (SELECT COUNT(*) FROM event_rsvps WHERE eventId = e.id AND status = 'going') as goingCount,
+        (SELECT status FROM event_rsvps WHERE eventId = e.id AND userId = ?) as myRsvp
       FROM events e
       INNER JOIN users u ON e.createdBy = u.id
       WHERE e.visibility = 'public'
@@ -46,9 +47,7 @@ class Event {
           )
         )
       ORDER BY e.eventDate DESC
-    `);
-
-    return stmt.all(requestingUserId, requestingUserId, requestingUserId);
+    `).all(requestingUserId, requestingUserId, requestingUserId, requestingUserId);
   }
 
   static getUserEvents(userId) {
@@ -96,6 +95,14 @@ class Event {
   static delete(id) {
     const stmt = db.prepare('DELETE FROM events WHERE id = ?');
     return stmt.run(id);
+  }
+
+  static setRsvp(eventId, userId, status) {
+    db.prepare(`
+      INSERT INTO event_rsvps (eventId, userId, status)
+      VALUES (?, ?, ?)
+      ON CONFLICT(eventId, userId) DO UPDATE SET status = excluded.status
+    `).run(eventId, userId, status);
   }
 
   /**

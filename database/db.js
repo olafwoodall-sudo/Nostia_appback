@@ -656,6 +656,19 @@ function initializeDatabase() {
   `);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_vault_invite_tokens_token ON vault_invite_tokens(token)`);
 
+  // Event RSVPs
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS event_rsvps (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      eventId INTEGER NOT NULL,
+      userId INTEGER NOT NULL,
+      status TEXT NOT NULL,
+      UNIQUE(eventId, userId),
+      FOREIGN KEY (eventId) REFERENCES events(id) ON DELETE CASCADE,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
   console.log('✅ Database tables initialized successfully');
 }
 

@@ -861,9 +861,9 @@ app.get('/api/events/nearby', authenticateToken, (req, res) => {
 });
 
 // Get event by ID
-app.get('/api/events/:id', (req, res) => {
+app.get('/api/events/:id', optionalAuth, (req, res) => {
   try {
-    const event = Event.findById(req.params.id);
+    const event = Event.findById(req.params.id, req.user?.id ?? null);
     if (!event) {
       return res.status(404).json({ error: 'Event not found' });
     }
@@ -917,6 +917,22 @@ app.delete('/api/events/:id', authenticateToken, (req, res) => {
     }
     Event.delete(req.params.id);
     res.json({ message: 'Event deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// RSVP to an event
+app.post('/api/events/:id/rsvp', authenticateToken, (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['going', 'not_going'].includes(status)) {
+      return res.status(400).json({ error: 'Status must be going or not_going' });
+    }
+    const event = Event.findById(req.params.id, req.user.id);
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+    Event.setRsvp(req.params.id, req.user.id, status);
+    res.json(Event.findById(req.params.id, req.user.id));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
