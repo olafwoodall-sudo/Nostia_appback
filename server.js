@@ -540,8 +540,9 @@ app.post('/api/friends/accept/:requestId', authenticateToken, (req, res) => {
     console.log(`[ACCEPT] requestId=${reqIdInt} friendRequest=${JSON.stringify(friendRequest)} userId=${req.user.id}`);
 
     if (!friendRequest) {
-      console.log(`[ACCEPT] 404: requestId=${reqIdInt} not found`);
-      return res.status(404).json({ error: 'Friend request not found' });
+      // Already accepted (e.g. via vault invite auto-friendship) or cancelled — treat as success
+      console.log(`[ACCEPT] already processed: requestId=${reqIdInt}`);
+      return res.json({ id: reqIdInt, status: 'accepted' });
     }
     if (Number(friendRequest.friendId) !== Number(req.user.id)) {
       console.log(`[ACCEPT] 403: friendId=${friendRequest.friendId} userId=${req.user.id}`);
@@ -980,6 +981,7 @@ app.post('/api/vault', authenticateToken, (req, res) => {
         finalSplits = participants.map((p, i) => ({
           userId: p.id,
           amount: i === participants.length - 1 ? lastAmount : each,
+          paid: Number(p.id) === Number(paidBy),
         }));
       }
     }

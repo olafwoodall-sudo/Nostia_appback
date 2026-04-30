@@ -25,7 +25,7 @@ class Vault {
     // Add splits if provided
     if (splits && Array.isArray(splits)) {
       splits.forEach(split => {
-        this.addSplit(entryId, split.userId, split.amount);
+        this.addSplit(entryId, split.userId, split.amount, split.paid ? 1 : 0);
       });
     }
 
@@ -149,13 +149,13 @@ class Vault {
   }
 
   // Add a split to an entry
-  static addSplit(vaultEntryId, userId, amount) {
+  static addSplit(vaultEntryId, userId, amount, paid = 0) {
     const stmt = db.prepare(`
-      INSERT INTO vault_splits (vaultEntryId, userId, amount)
-      VALUES (?, ?, ?)
+      INSERT INTO vault_splits (vaultEntryId, userId, amount, paid)
+      VALUES (?, ?, ?, ?)
     `);
 
-    return stmt.run(vaultEntryId, userId, amount);
+    return stmt.run(vaultEntryId, userId, amount, paid);
   }
 
   // Get splits for an entry
