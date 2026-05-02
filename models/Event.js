@@ -4,6 +4,9 @@ const db = require('../database/db');
 try {
   db.prepare(`ALTER TABLE events ADD COLUMN visibility TEXT NOT NULL DEFAULT 'public'`).run();
 } catch (_) { /* column already exists */ }
+try {
+  db.prepare(`ALTER TABLE events ADD COLUMN flyerImage TEXT`).run();
+} catch (_) { /* column already exists */ }
 
 class Event {
   static create(eventData) {
@@ -76,7 +79,7 @@ class Event {
   }
 
   static update(id, updates) {
-    const allowedFields = ['title', 'description', 'location', 'eventDate', 'type', 'latitude', 'longitude', 'visibility'];
+    const allowedFields = ['title', 'description', 'location', 'eventDate', 'type', 'latitude', 'longitude', 'visibility', 'flyerImage'];
     const fields = Object.keys(updates).filter(key => allowedFields.includes(key));
 
     if (fields.length === 0) return this.findById(id);
