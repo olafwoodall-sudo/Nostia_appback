@@ -20,7 +20,7 @@ const db = require('./database/db');
 
 // Import models
 const User = require('./models/User');
-const Friend = require('./models/Friend');
+const Follow = require('./models/Follow');
 const Trip = require('./models/Trip');
 const Event = require('./models/Event');
 const Vault = require('./models/Vault');
@@ -489,124 +489,66 @@ app.get('/api/consent/history', authenticateToken, (req, res) => {
   }
 });
 
-// ==================== FRIEND ROUTES ====================
+// ==================== FOLLOW ROUTES ====================
 
-// Get all friends
-app.get('/api/friends', authenticateToken, (req, res) => {
+// Follow a user
+app.post('/api/follow', authenticateToken, (req, res) => {
   try {
-    const friends = Friend.getFriends(req.user.id);
-    console.log(`[FRIENDS] userId=${req.user.id} count=${friends.length}`);
-    res.json(friends);
-  } catch (error) {
-    console.error(`[FRIENDS] error for userId=${req.user.id}: ${error.message}`);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get pending friend requests
-app.get('/api/friends/requests', authenticateToken, (req, res) => {
-  try {
-    const received = Friend.getPendingRequests(req.user.id);
-    const sent = Friend.getSentRequests(req.user.id);
-    res.json({ received, sent });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Send friend request
-app.post('/api/friends/request', authenticateToken, (req, res) => {
-  try {
-    const { friendId } = req.body;
-
-    if (!friendId) {
-      return res.status(400).json({ error: 'Friend ID is required' });
-    }
-
-    const request = Friend.sendRequest(req.user.id, friendId);
-    res.status(201).json(request);
+    const userId = parseInt(req.body.userId, 10);
+    if (isNaN(userId)) return res.status(400).json({ error: 'Invalid userId' });
+    Follow.follow(req.user.id, userId);
+    res.status(201).json({ message: 'Followed' });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 });
 
-// Accept friend request
-app.post('/api/friends/accept/:requestId', authenticateToken, (req, res) => {
+// Unfollow a user
+app.delete('/api/follow/:userId', authenticateToken, (req, res) => {
   try {
-    const { requestId } = req.params;
-    const reqIdInt = parseInt(requestId, 10);
-
-    const friendRequest = Friend.getById(reqIdInt);
-    console.log(`[ACCEPT] requestId=${reqIdInt} friendRequest=${JSON.stringify(friendRequest)} userId=${req.user.id}`);
-
-    if (!friendRequest) {
-      // Already accepted (e.g. via vault invite auto-friendship) or cancelled — treat as success
-      console.log(`[ACCEPT] already processed: requestId=${reqIdInt}`);
-      return res.json({ id: reqIdInt, status: 'accepted' });
-    }
-    if (Number(friendRequest.friendId) !== Number(req.user.id)) {
-      console.log(`[ACCEPT] 403: friendId=${friendRequest.friendId} userId=${req.user.id}`);
-      return res.status(403).json({ error: 'Not authorized to accept this request' });
-    }
-
-    const request = Friend.acceptRequest(reqIdInt);
-    console.log(`[ACCEPT] success: ${JSON.stringify(request)}`);
-    res.json(request);
-  } catch (error) {
-    console.error(`[ACCEPT] error: ${error.message}`);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Reject friend request
-app.delete('/api/friends/reject/:requestId', authenticateToken, (req, res) => {
-  try {
-    const { requestId } = req.params;
-    const reqIdInt = parseInt(requestId, 10);
-
-    const friendRequest = Friend.getById(reqIdInt);
-    if (!friendRequest) {
-      return res.status(404).json({ error: 'Friend request not found' });
-    }
-    if (Number(friendRequest.friendId) !== Number(req.user.id)) {
-      return res.status(403).json({ error: 'Not authorized to reject this request' });
-    }
-
-    Friend.rejectRequest(reqIdInt);
-    res.json({ message: 'Friend request rejected' });
+    const userId = parseInt(req.params.userId, 10);
+    if (isNaN(userId)) return res.status(400).json({ error: 'Invalid userId' });
+    Follow.unfollow(req.user.id, userId);
+    res.json({ message: 'Unfollowed' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Remove friend
-app.delete('/api/friends/:friendId', authenticateToken, (req, res) => {
+// Get your followers (users who follow you)
+app.get('/api/followers', authenticateToken, (req, res) => {
   try {
-    const { friendId } = req.params;
-    Friend.removeFriend(req.user.id, friendId);
-    res.json({ message: 'Friend removed' });
+    res.json(Follow.getFollowers(req.user.id));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get friends' locations (only those who have granted location consent)
-app.get('/api/friends/locations', authenticateToken, (req, res) => {
+// Get who you follow
+app.get('/api/following', authenticateToken, (req, res) => {
   try {
-    const db = require('./database/db');
-    const locations = db.prepare(`
-      SELECT u.id, u.username, u.name, u.latitude, u.longitude, u.updatedAt
-      FROM users u
-      INNER JOIN friends f ON (
-        (f.userId = ? AND f.friendId = u.id) OR
-        (f.friendId = ? AND f.userId = u.id)
-      )
-      WHERE f.status = 'accepted'
-        AND u.latitude IS NOT NULL
-        AND u.longitude IS NOT NULL
-        AND u.locationConsentGranted = 1
-    `).all(req.user.id, req.user.id);
-    res.json(locations);
+    res.json(Follow.getFollowing(req.user.id));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get follow status relative to another user
+app.get('/api/follow/status/:userId', authenticateToken, (req, res) => {
+  try {
+    const targetId = parseInt(req.params.userId, 10);
+    const isFollowing = Follow.isFollowing(req.user.id, targetId);
+    const isFollowedBy = Follow.isFollowing(targetId, req.user.id);
+    res.json({ isFollowing, isFollowedBy, isMutual: isFollowing && isFollowedBy });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get location feed (mutual follows with location consent)
+app.get('/api/follow/locations', authenticateToken, (req, res) => {
+  try {
+    res.json(Follow.getLocationsFeed(req.user.id));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -1280,11 +1222,11 @@ app.post('/api/conversations', authenticateToken, (req, res) => {
       return res.status(400).json({ error: 'Cannot create conversation with yourself' });
     }
 
-    // Verify they are friends
-    const friends = Friend.getFriends(req.user.id);
-    const isFriend = friends.some(f => f.id === userId);
-    if (!isFriend) {
-      return res.status(400).json({ error: 'Can only message friends' });
+    // Require mutual follow to start a conversation
+    const targetId = parseInt(userId, 10);
+    if (isNaN(targetId)) return res.status(400).json({ error: 'Invalid userId' });
+    if (!Follow.isMutual(req.user.id, targetId)) {
+      return res.status(400).json({ error: 'Can only message users you mutually follow' });
     }
 
     const conversation = Message.getOrCreateConversation(req.user.id, userId);
@@ -1328,6 +1270,15 @@ app.post('/api/conversations/:id/messages', authenticateToken, async (req, res) 
     const conv = Message.getConversationById(conversationId);
     if (!conv || (conv.user1Id !== req.user.id && conv.user2Id !== req.user.id)) {
       return res.status(403).json({ error: 'Not authorized to send message in this conversation' });
+    }
+
+    // Lock thread if mutual follow was lost
+    const otherUserId = conv.user1Id === req.user.id ? conv.user2Id : conv.user1Id;
+    if (!Follow.isMutual(req.user.id, otherUserId)) {
+      return res.status(403).json({
+        error: 'This conversation is read-only because you no longer mutually follow each other',
+        locked: true
+      });
     }
 
     const message = Message.sendMessage(conversationId, req.user.id, content.trim());
@@ -1757,7 +1708,8 @@ app.post('/api/privacy/data-request', authenticateToken, exportLimiter, (req, re
     const userData = {
       profile: user,
       consents: Consent.getConsentHistory(userId),
-      friends: Friend.getFriends(userId),
+      following: Follow.getFollowing(userId),
+      followers: Follow.getFollowers(userId),
       trips: Trip.getUserTrips(userId),
       events: db.prepare('SELECT * FROM events WHERE createdBy = ?').all(userId),
       feedPosts: db.prepare('SELECT id, content, type, createdAt FROM feed_posts WHERE userId = ?').all(userId),

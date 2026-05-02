@@ -343,24 +343,7 @@ class Trip {
 
       db.prepare(`INSERT INTO trip_participants (tripId, userId, role, status) VALUES (?, ?, 'participant', 'active')`).run(tripId, numRedeemerId);
 
-      const activeMembers = db.prepare(`
-        SELECT userId FROM trip_participants WHERE tripId = ? AND userId != ? AND status = 'active'
-      `).all(tripId, numRedeemerId);
-
-      let friendsAdded = 0;
-      for (const member of activeMembers) {
-        db.prepare(`
-          INSERT INTO friends (userId, friendId, status) VALUES (?, ?, 'accepted')
-          ON CONFLICT(userId, friendId) DO UPDATE SET status = 'accepted'
-        `).run(numRedeemerId, member.userId);
-        db.prepare(`
-          INSERT INTO friends (userId, friendId, status) VALUES (?, ?, 'accepted')
-          ON CONFLICT(userId, friendId) DO UPDATE SET status = 'accepted'
-        `).run(member.userId, numRedeemerId);
-        friendsAdded++;
-      }
-
-      return { trip: TripClass.findById(tripId), alreadyMember: false, friendsAdded, vaultName };
+      return { trip: TripClass.findById(tripId), alreadyMember: false, followsAdded: 0, vaultName };
     })();
   }
 }

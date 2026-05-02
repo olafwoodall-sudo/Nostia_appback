@@ -41,6 +41,21 @@ function initializeDatabase() {
     )
   `);
 
+  // Follows table (unidirectional following/followers)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS follows (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      follower_id INTEGER NOT NULL,
+      followee_id INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (followee_id) REFERENCES users(id) ON DELETE CASCADE,
+      UNIQUE(follower_id, followee_id)
+    )
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_follows_follower ON follows(follower_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_follows_followee ON follows(followee_id)`);
+
   // Trips table
   db.exec(`
     CREATE TABLE IF NOT EXISTS trips (

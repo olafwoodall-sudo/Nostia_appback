@@ -18,8 +18,7 @@ class User {
   static findById(id) {
     const stmt = db.prepare(`
       SELECT u.*,
-        (SELECT COUNT(*) FROM friends
-         WHERE (userId = u.id OR friendId = u.id) AND status = 'accepted') as friendsCount
+        (SELECT COUNT(*) FROM follows WHERE followee_id = u.id) as followersCount
       FROM users u WHERE u.id = ?
     `);
     const user = stmt.get(id);
