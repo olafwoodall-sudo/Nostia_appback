@@ -74,12 +74,14 @@ class Message {
    * Get message by ID
    */
   static getMessageById(id) {
-    return db.prepare(`
+    const msg = db.prepare(`
       SELECT m.*, u.username as senderUsername, u.name as senderName
       FROM messages m
       INNER JOIN users u ON m.senderId = u.id
       WHERE m.id = ?
     `).get(id);
+    if (msg) msg.read = msg.read === 1;
+    return msg;
   }
 
   /**
@@ -93,7 +95,7 @@ class Message {
       WHERE m.conversationId = ?
       ORDER BY m.createdAt DESC
       LIMIT ? OFFSET ?
-    `).all(conversationId, limit, offset);
+    `).all(conversationId, limit, offset).map(m => ({ ...m, read: m.read === 1 }));
   }
 
   /**
