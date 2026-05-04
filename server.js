@@ -390,6 +390,16 @@ app.get('/api/users/search', authenticateToken, searchLimiter, (req, res) => {
   }
 });
 
+// Get posts by user ID (profile page)
+app.get('/api/users/:id/posts', authenticateToken, (req, res) => {
+  try {
+    const posts = Feed.getUserPostsByUserId(parseInt(req.params.id), req.user.id);
+    res.json(posts);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get public profile by user ID
 app.get('/api/users/:id', authenticateToken, (req, res) => {
   try {
@@ -963,11 +973,12 @@ app.delete('/api/vault/:id', authenticateToken, (req, res) => {
 
 // ==================== FEED ROUTES ====================
 
-// Get user feed
+// Get user feed (followed users 48h + geo 50km 48h, merged)
 app.get('/api/feed', authenticateToken, (req, res) => {
   try {
-    const limit = req.query.limit || 50;
-    const posts = Feed.getUserFeed(req.user.id, limit);
+    const limit = parseInt(req.query.limit) || 50;
+    const user = db.prepare('SELECT latitude, longitude FROM users WHERE id = ?').get(req.user.id);
+    const posts = Feed.getUserFeed(req.user.id, user?.latitude, user?.longitude, limit);
     res.json(posts);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -985,14 +996,25 @@ app.get('/api/feed/public', (req, res) => {
   }
 });
 
-// Create feed post
+// Create feed post (photo required, max 2/day, stores author GPS snapshot)
 app.post('/api/feed', authenticateToken, (req, res) => {
   try {
+    if (!req.body.imageData) {
+      return res.status(400).json({ error: 'A photo is required.' });
+    }
+    const todayCount = db.prepare(
+      `SELECT COUNT(*) as cnt FROM feed_posts WHERE userId = ? AND date(createdAt) = date('now')`
+    ).get(req.user.id).cnt;
+    if (todayCount >= 2) {
+      return res.status(429).json({ error: 'You have reached your daily post limit of 2.' });
+    }
+    const user = db.prepare('SELECT latitude, longitude FROM users WHERE id = ?').get(req.user.id);
     const postData = {
       ...req.body,
-      userId: req.user.id
+      userId: req.user.id,
+      authorLat: user?.latitude,
+      authorLng: user?.longitude
     };
-
     const post = Feed.createPost(postData);
     res.status(201).json(post);
   } catch (error) {
@@ -1017,10 +1039,11 @@ app.delete('/api/feed/:id', authenticateToken, (req, res) => {
   }
 });
 
-// Like a post
+// Like a post (also removes any existing dislike)
 app.post('/api/feed/:id/like', authenticateToken, (req, res) => {
   try {
     const postId = parseInt(req.params.id);
+    Feed.undislikePost(postId, req.user.id);
     const likeCount = Feed.likePost(postId, req.user.id);
     res.json({ success: true, likeCount, isLiked: true });
   } catch (error) {
@@ -1034,6 +1057,28 @@ app.delete('/api/feed/:id/like', authenticateToken, (req, res) => {
     const postId = parseInt(req.params.id);
     const likeCount = Feed.unlikePost(postId, req.user.id);
     res.json({ success: true, likeCount, isLiked: false });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Dislike a post (also removes any existing like)
+app.post('/api/feed/:id/dislike', authenticateToken, (req, res) => {
+  try {
+    const postId = parseInt(req.params.id);
+    const dislikeCount = Feed.dislikePost(postId, req.user.id);
+    res.json({ success: true, dislikeCount, isDisliked: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Un-dislike a post
+app.delete('/api/feed/:id/dislike', authenticateToken, (req, res) => {
+  try {
+    const postId = parseInt(req.params.id);
+    const dislikeCount = Feed.undislikePost(postId, req.user.id);
+    res.json({ success: true, dislikeCount, isDisliked: false });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

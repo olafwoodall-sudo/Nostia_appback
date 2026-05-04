@@ -693,6 +693,23 @@ function initializeDatabase() {
     db.exec(`ALTER TABLE users ADD COLUMN profile_picture_url TEXT`);
   } catch (e) {}
 
+  // Post dislikes table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS post_dislikes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      postId INTEGER NOT NULL,
+      userId INTEGER NOT NULL,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (postId) REFERENCES feed_posts(id) ON DELETE CASCADE,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
+      UNIQUE(postId, userId)
+    )
+  `);
+
+  // Author GPS snapshot on posts (for geo feed)
+  try { db.exec(`ALTER TABLE feed_posts ADD COLUMN author_lat REAL`); } catch(e) {}
+  try { db.exec(`ALTER TABLE feed_posts ADD COLUMN author_lng REAL`); } catch(e) {}
+
   console.log('✅ Database tables initialized successfully');
 }
 
