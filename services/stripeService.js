@@ -17,16 +17,28 @@ class StripeService {
     return calculateChargedAmount(owed);
   }
 
-  static async createConnectAccount() {
-    return stripe.accounts.create({ type: 'express', business_type: 'individual' });
+  static async createConnectAccount(userInfo = {}) {
+    const params = { type: 'standard', business_type: 'individual' };
+    const individual = {};
+    if (userInfo.firstName) individual.first_name = userInfo.firstName;
+    if (userInfo.lastName) individual.last_name = userInfo.lastName;
+    if (userInfo.email) individual.email = userInfo.email;
+    if (Object.keys(individual).length > 0) params.individual = individual;
+    return stripe.accounts.create(params);
   }
 
   static async getOrCreateConnectAccount(userId) {
-    const user = db.prepare('SELECT stripe_account_id FROM users WHERE id = ?').get(userId);
+    const user = db.prepare('SELECT stripe_account_id, name, email FROM users WHERE id = ?').get(userId);
     if (!user) throw new Error('User not found');
     if (user.stripe_account_id) return user.stripe_account_id;
 
-    const account = await this.createConnectAccount();
+    const nameParts = (user.name || '').trim().split(' ');
+    const userInfo = {
+      firstName: nameParts[0] || undefined,
+      lastName: nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined,
+      email: user.email || undefined
+    };
+    const account = await this.createConnectAccount(userInfo);
     db.prepare('UPDATE users SET stripe_account_id = ?, onboarding_complete = 0 WHERE id = ?')
       .run(account.id, userId);
     return account.id;

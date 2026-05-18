@@ -46,7 +46,7 @@ class Event {
   }
 
   static findById(id, requestingUserId = null) {
-    return db.prepare(`
+    const event = db.prepare(`
       SELECT e.*, u.username as creatorUsername, u.name as creatorName,
         (SELECT COUNT(*) FROM event_rsvps WHERE eventId = e.id AND status = 'going') as goingCount,
         (SELECT status FROM event_rsvps WHERE eventId = e.id AND userId = ?) as myRsvp
@@ -54,6 +54,24 @@ class Event {
       INNER JOIN users u ON e.createdBy = u.id
       WHERE e.id = ?
     `).get(requestingUserId, id);
+    if (!event) return null;
+    if (!this.canViewEvent(event, requestingUserId)) return null;
+    return event;
+  }
+
+  static canViewEvent(event, requestingUserId) {
+    if (event.visibility === 'public') return true;
+    if (!requestingUserId) return false;
+    if (event.createdBy === requestingUserId) return true;
+    if (event.visibility === 'friends' || event.visibility === 'followers') {
+      return !!db.prepare('SELECT 1 FROM follows WHERE follower_id = ? AND followee_id = ?')
+        .get(requestingUserId, event.createdBy);
+    }
+    if (event.visibility === 'private') {
+      return !!db.prepare('SELECT 1 FROM event_invitees WHERE eventId = ? AND userId = ?')
+        .get(event.id, requestingUserId);
+    }
+    return false;
   }
 
   static getAll(requestingUserId = null) {
@@ -66,11 +84,10 @@ class Event {
       WHERE e.visibility = 'public'
         OR e.createdBy = ?
         OR (
-          e.visibility = 'friends'
+          e.visibility IN ('friends', 'followers')
           AND EXISTS (
-            SELECT 1 FROM friends f
-            WHERE f.status = 'accepted'
-              AND ((f.userId = ? AND f.friendId = e.createdBy) OR (f.friendId = ? AND f.userId = e.createdBy))
+            SELECT 1 FROM follows
+            WHERE follower_id = ? AND followee_id = e.createdBy
           )
         )
         OR (
@@ -78,7 +95,7 @@ class Event {
           AND EXISTS (SELECT 1 FROM event_invitees WHERE eventId = e.id AND userId = ?)
         )
       ORDER BY e.eventDate DESC
-    `).all(requestingUserId, requestingUserId, requestingUserId, requestingUserId, requestingUserId);
+    `).all(requestingUserId, requestingUserId, requestingUserId, requestingUserId);
   }
 
   static getUserEvents(userId) {
@@ -198,10 +215,13 @@ class Event {
             e.createdBy = ?
             OR EXISTS (SELECT 1 FROM event_invitees WHERE eventId = e.id AND userId = ?)
           ))
-          -- Priority 2: follower events (user follows the creator)
-          OR EXISTS (
-            SELECT 1 FROM follows
-            WHERE follower_id = ? AND followee_id = e.createdBy
+          -- Priority 2: follower-visibility events where user follows the creator
+          OR (
+            e.visibility IN ('friends', 'followers')
+            AND EXISTS (
+              SELECT 1 FROM follows
+              WHERE follower_id = ? AND followee_id = e.createdBy
+            )
           )
           -- Priority 3: global public events
           OR (e.visibility = 'public' AND e.is_global = 1)
